@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Visualizer Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lobster&family=Poppins:wght@400;700&family=Roboto+Mono&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* bg-gray-900 */
+            overflow: hidden; /* Prevent body scroll */
+        }
+        .label-text {
+            color: #d1d5db; /* text-gray-300 */
+        }
+        .control-panel {
+            background-color: #1f2937; /* bg-gray-800 */
+            border-top: 1px solid #374151; /* border-gray-700 */
+        }
+        .preview-panel {
+            background-color: #000;
+        }
+        .btn {
+            transition: all 0.2s ease-in-out;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .btn-primary {
+            background-color: #4f46e5;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #4338ca;
+        }
+        .btn-secondary {
+            background-color: #374151;
+            color: #d1d5db;
+        }
+        .btn-secondary:hover {
+            background-color: #4b5563;
+        }
+        .btn-danger {
+            background-color: #dc2626;
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #b91c1c;
+        }
+        .btn-disabled {
+            background-color: #4b5563;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        #visualizerCanvas {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 0.5rem;
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #4b5563;
+            border-radius: 5px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        input[type="range"]:hover {
+             opacity: 1;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #4f46e5;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #4f46e5;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #4f46e5;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #4f46e5;
+        }
+        .preset-btn {
+            background-color: #374151;
+            border: 1px solid #4b5563;
+            width: 2rem;
+            height: 2rem;
+        }
+        .preset-btn:hover {
+            background-color: #4f46e5;
+        }
+    </style>
+</head>
+<body class="text-white">
+
+    <div class="flex flex-col h-screen">
+        <!-- Preview Panel -->
+        <div class="w-full h-[60vh] p-4 flex items-center justify-center preview-panel">
+            <canvas id="visualizerCanvas" width="1280" height="720"></canvas>
+            <audio id="audioElement" crossOrigin="anonymous"></audio>
+            <video id="videoElement" crossOrigin="anonymous" loop playsinline muted class="hidden"></video>
+        </div>
+        
+        <!-- Control Panel -->
+        <div class="w-full h-[40vh] p-6 control-panel overflow-y-auto">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 max-w-7xl mx-auto">
+                
+                <!-- Column 1: Media, Teks & Preset -->
+                <div class="space-y-4">
+                    <h2 class="text-lg font-semibold label-text pb-2 border-b border-gray-700">Media, Teks & Preset</h2>
+                    <div>
+                        <label class="block mb-2 text-xs font-medium label-text" for="bgInput">1. Latar Belakang</label>
+                        <input type="file" id="bgInput" accept="image/*,video/*" class="control-input block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="block mb-2 text-xs font-medium label-text" for="audioInput">2. Audio</label>
+                        <input type="file" id="audioInput" accept="audio/*" multiple class="control-input block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="block mb-2 text-xs font-medium label-text" for="djLogoInput">3. Logo Piringan DJ (Opsional)</label>
+                        <input type="file" id="djLogoInput" accept="image/*" class="control-input block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer">
+                    </div>
+                     <div>
+                        <label class="block mb-2 text-xs font-medium label-text" for="textLine1">4. Teks Overlay</label>
+                        <input type="text" id="textLine1" placeholder="Baris Teks 1 (e.g., Judul Lagu)" class="control-input bg-gray-700 border border-gray-600 text-white text-sm rounded-lg w-full p-2.5">
+                        <input type="text" id="textLine2" placeholder="Baris Teks 2 (e.g., Nama Artis)" class="control-input bg-gray-700 border border-gray-600 text-white text-sm rounded-lg w-full p-2.5 mt-2">
+                    </div>
+                    <div class="pt-2 border-t border-gray-700">
+                        <label class="block mb-2 text-xs font-medium label-text">Preset Pengaturan</label>
+                        <div class="flex gap-2">
+                             <input type="text" id="presetName" placeholder="Nama Preset" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg w-full p-2.5">
+                             <button id="savePresetBtn" class="px-3 py-2 text-sm rounded-lg btn btn-secondary">Simpan</button>
+                        </div>
+                        <select id="loadPresetSelect" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg w-full p-2.5 mt-2">
+                            <option value="">Muat Preset...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Column 2: Spectrum -->
+                <div class="space-y-3">
+                     <h2 class="text-lg font-semibold label-text pb-2 border-b border-gray-700">Pengaturan Spektrum</h2>
+                     <div>
+                        <label for="spectrumType" class="block mb-2 text-xs font-medium label-text">Gaya Spektrum</label>
+                        <select id="spectrumType" class="control-input bg-gray-700 border border-gray-600 text-white text-sm rounded-lg w-full p-2.5">
+                            <option value="bars" selected>Batang Klasik</option>
+                            <option value="bouncing-bars">Batang & Bola Pantul</option>
+                            <option value="dj-disc">Piringan DJ</option>
+                            <option value="circle-bars">Batang Melingkar</option>
+                            <option value="dual-lines">Garis Ganda</option>
+                            <option value="wave">Gelombang</option>
+                            <option value="none">Tidak Ada</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block mb-2 text-xs font-medium label-text">Warna Spektrum (Gradien)</label>
+                        <div class="flex gap-2">
+                            <input type="color" id="spectrumColor1" value="#4F46E5" class="control-input p-1 h-10 w-full block bg-gray-700 border border-gray-600 cursor-pointer rounded-lg">
+                            <input type="color" id="spectrumColor2" value="#A855F7" class="control-input p-1 h-10 w-full block bg-gray-700 border border-gray-600 cursor-pointer rounded-lg">
+                        </div>
+                    </div>
+                     <div id="barControls" class="grid grid-cols-2 gap-x-4 gap-y-2">
+                        <div>
+                            <label for="spectrumNumBars" class="block mb-1 text-xs font-medium label-text">Jumlah Batang</label>
+                            <input id="spectrumNumBars" type="range" min="32" max="256" value="128" step="4" class="control-input w-full">
+                        </div>
+                        <div>
+                            <label for="spectrumBarThickness" class="block mb-1 text-xs font-medium label-text">Tebal Batang</label>
+                            <input id="spectrumBarThickness" type="range" min="1" max="50" value="5" class="control-input w-full">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Column 3: Particles & Advanced Effects -->
+                <div class="space-y-4">
+                    <h2 class="text-lg font-semibold label-text pb-2 border-b border-gray-700">Efek Lanjutan</h2>
+                     <div>
+                        <label for="particleType" class="block mb-2 text-xs font-medium label-text">Efek Partikel</label>
+                        <select id="particleType" class="control-input bg-gray-700 border border-gray-600 text-white text-sm rounded-lg w-full p-2.5">
+                            <option value="none" selected>Tidak Ada</option>
+                            <option value="particle-rain">Hujan Partikel</option>
+                            <option value="spinning-galaxy">Galaksi Berputar</option>
+                            <option value="particles">Partikel Energi</option>
+                        </select>
+                    </div>
+                     <div id="particleControls" class="space-y-2" style="display: none;">
+                         <label for="particleShape" class="block mb-2 text-xs font-medium label-text">Bentuk Partikel</label>
+                         <select id="particleShape" class="control-input bg-gray-700 border border-gray-600 text-white text-sm rounded-lg w-full p-2.5">
+                            <option value="circle">Lingkaran</option>
+                            <option value="square">Kotak</option>
+                            <option value="triangle">Segitiga</option>
+                         </select>
+                         <label for="particleOpacity" class="block mb-1 text-xs font-medium label-text">Opacity Partikel</label>
+                         <input id="particleOpacity" type="range" min="0" max="100" value="80" class="control-input w-full">
+                    </div>
+                    <div class="flex items-center justify-between pt-2 border-t border-gray-700">
+                        <span class="text-sm font-medium label-text">Denyut Latar</span>
+                        <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                            <input type="checkbox" id="bgPulseEffect" class="control-input toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                            <label for="bgPulseEffect" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
+                        </div>
+                    </div>
+                     <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium label-text">Efek Pendar (Bloom)</span>
+                        <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                            <input type="checkbox" id="bloomEffect" class="control-input toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                            <label for="bloomEffect" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
+                        </div>
+                    </div>
+                    <div id="bloomIntensityContainer" class="hidden">
+                        <label for="bloomIntensity" class="block mb-1 text-xs font-medium label-text">Intensitas Pendar</label>
+                        <input id="bloomIntensity" type="range" min="5" max="50" value="15" class="control-input w-full">
+                    </div>
+                </div>
+
+                 <!-- Column 4: Text, Position & Actions -->
+                <div class="space-y-4">
+                    <h2 class="text-lg font-semibold label-text pb-2 border-b border-gray-700">Teks, Posisi & Aksi</h2>
+                     <div id="textControls" class="space-y-2">
+                        <label class="block text-xs font-medium label-text">Gaya Teks</label>
+                         <input type="color" id="textColor" value="#FFFFFF" class="control-input p-1 h-10 w-full block bg-gray-700 border border-gray-600 cursor-pointer rounded-lg">
+                        <select id="textFontFamily" class="control-input bg-gray-700 border border-gray-600 text-white text-sm rounded-lg w-full p-2.5">
+                            <option style="font-family: 'Poppins', sans-serif;" value="Poppins">Poppins</option>
+                            <option style="font-family: 'Bebas Neue', cursive;" value="Bebas Neue">Bebas Neue</option>
+                            <option style="font-family: 'Lobster', cursive;" value="Lobster">Lobster</option>
+                            <option style="font-family: 'Roboto Mono', monospace;" value="Roboto Mono">Roboto Mono</option>
+                            <option style="font-family: Arial, sans-serif;" value="Arial">Arial</option>
+                        </select>
+                         <label for="textFontSize" class="block mb-1 text-xs font-medium label-text">Ukuran Font</label>
+                         <input id="textFontSize" type="range" min="12" max="120" value="48" class="control-input w-full">
+                    </div>
+                    <div class="grid grid-cols-2 gap-x-4 gap-y-2">
+                         <h3 class="col-span-2 text-sm font-medium label-text -mb-1">Posisi Spektrum</h3>
+                         <div>
+                             <label for="spectrumWidth" class="block mb-1 text-xs font-medium label-text">Lebar (%)</label>
+                             <input id="spectrumWidth" type="range" min="10" max="100" value="100" class="control-input w-full">
+                         </div>
+                          <div>
+                             <label for="spectrumHeight" class="block mb-1 text-xs font-medium label-text">Tinggi (%)</label>
+                             <input id="spectrumHeight" type="range" min="10" max="100" value="50" class="control-input w-full">
+                         </div>
+                         <div>
+                            <label for="spectrumPosX" class="block mb-1 text-xs font-medium label-text">X (%)</label>
+                            <input id="spectrumPosX" type="range" min="0" max="100" value="50" class="control-input w-full">
+                        </div>
+                         <div>
+                            <label for="spectrumPosY" class="block mb-1 text-xs font-medium label-text">Y (%)</label>
+                            <input id="spectrumPosY" type="range" min="0" max="100" value="75" class="control-input w-full">
+                        </div>
+                         <h3 class="col-span-2 text-sm font-medium label-text mt-2 -mb-1">Posisi Teks</h3>
+                        <div>
+                            <label for="textPosX" class="block mb-1 text-xs font-medium label-text">X (%)</label>
+                            <input id="textPosX" type="range" min="0" max="100" value="50" class="control-input w-full">
+                        </div>
+                         <div>
+                            <label for="textPosY" class="block mb-1 text-xs font-medium label-text">Y (%)</label>
+                            <input id="textPosY" type="range" min="0" max="100" value="90" class="control-input w-full">
+                        </div>
+                    </div>
+                    <div>
+                        <div id="text-position-presets" class="grid grid-cols-3 gap-2 mx-auto w-max">
+                            <button data-pos="top-left" class="preset-btn"></button> <button data-pos="top-center" class="preset-btn"></button> <button data-pos="top-right" class="preset-btn"></button>
+                            <button data-pos="middle-left" class="preset-btn"></button> <button data-pos="middle-center" class="preset-btn"></button> <button data-pos="middle-right" class="preset-btn"></button>
+                            <button data-pos="bottom-left" class="preset-btn"></button> <button data-pos="bottom-center" class="preset-btn"></button> <button data-pos="bottom-right" class="preset-btn"></button>
+                        </div>
+                    </div>
+                     <div class="space-y-3 pt-4 border-t border-gray-700">
+                        <button id="previewBtn" class="w-full font-bold py-2 px-4 rounded-lg btn btn-primary btn-disabled" disabled>Mulai Pratinjau</button>
+                        <div id="recording-controls" class="hidden">
+                            <button id="recordBtn" class="w-full font-bold py-2 px-4 rounded-lg btn btn-danger">Mulai Rekam & Ekspor Video</button>
+                             <div id="status" class="mt-2 p-2 text-center rounded-lg bg-gray-700 text-gray-300 text-sm hidden">Memproses...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    window.addEventListener('DOMContentLoaded', () => {
+        // --- Elemen DOM ---
+        const bgInput = document.getElementById('bgInput');
+        const audioInput = document.getElementById('audioInput');
+        const djLogoInput = document.getElementById('djLogoInput');
+        const previewBtn = document.getElementById('previewBtn');
+        const recordBtn = document.getElementById('recordBtn');
+        const recordingControls = document.getElementById('recording-controls');
+        const spectrumType = document.getElementById('spectrumType');
+        const particleType = document.getElementById('particleType');
+        const spectrumColor1 = document.getElementById('spectrumColor1');
+        const spectrumColor2 = document.getElementById('spectrumColor2');
+        const status = document.getElementById('status');
+        const barControls = document.getElementById('barControls');
+        const spectrumNumBars = document.getElementById('spectrumNumBars');
+        const spectrumBarThickness = document.getElementById('spectrumBarThickness');
+        const spectrumWidth = document.getElementById('spectrumWidth');
+        const spectrumHeight = document.getElementById('spectrumHeight');
+        const spectrumPosX = document.getElementById('spectrumPosX');
+        const spectrumPosY = document.getElementById('spectrumPosY');
+        const particleControls = document.getElementById('particleControls');
+        const particleOpacity = document.getElementById('particleOpacity');
+        const particleShape = document.getElementById('particleShape');
+        const textLine1 = document.getElementById('textLine1');
+        const textLine2 = document.getElementById('textLine2');
+        const textColor = document.getElementById('textColor');
+        const textFontFamily = document.getElementById('textFontFamily');
+        const textFontSize = document.getElementById('textFontSize');
+        const textPosX = document.getElementById('textPosX');
+        const textPosY = document.getElementById('textPosY');
+        const bgPulseEffect = document.getElementById('bgPulseEffect');
+        const bloomEffect = document.getElementById('bloomEffect');
+        const bloomIntensityContainer = document.getElementById('bloomIntensityContainer');
+        const bloomIntensity = document.getElementById('bloomIntensity');
+        const textPositionPresets = document.getElementById('text-position-presets');
+        const savePresetBtn = document.getElementById('savePresetBtn');
+        const presetName = document.getElementById('presetName');
+        const loadPresetSelect = document.getElementById('loadPresetSelect');
+        
+        const canvas = document.getElementById('visualizerCanvas');
+        const ctx = canvas.getContext('2d');
+        const audioElement = document.getElementById('audioElement');
+        const videoElement = document.getElementById('videoElement');
+
+        // --- State Aplikasi ---
+        let audioContext, analyser, audioSource, videoSource;
+        let dataArray, bufferLength;
+        let isPlaying = false;
+        let animationFrameId;
+        let mediaRecorder;
+        let recordedChunks = [];
+        let useVideoAudio = false;
+        let backgroundImage = null;
+        let djLogoImage = null;
+        let playlist = [];
+        let currentTrackIndex = 0;
+        let rotationAngle = 0; 
+        let particlesArray = [];
+        let ballHeights = [];
+        let currentTextAlign = 'center';
+        let currentTextBaseline = 'bottom';
+
+        // --- Inisialisasi ---
+        const initAudioContext = () => {
+            if (audioContext) return;
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 2048;
+            bufferLength = analyser.frequencyBinCount;
+            dataArray = new Uint8Array(bufferLength);
+            audioSource = audioContext.createMediaElementSource(audioElement);
+            videoSource = audioContext.createMediaElementSource(videoElement);
+            analyser.connect(audioContext.destination);
+        };
+
+        const updateUI = () => {
+            const hasBackground = bgInput.files.length > 0 || backgroundImage;
+            const hasAudio = playlist.length > 0 || useVideoAudio;
+            const canPreview = hasBackground && hasAudio;
+            previewBtn.disabled = !canPreview;
+            previewBtn.classList.toggle('btn-disabled', !canPreview);
+        };
+        
+        // --- Event Listeners ---
+        bgInput.addEventListener('change', (e) => {
+            const file = e.target.files[0]; if (!file) return;
+            const url = URL.createObjectURL(file);
+            if (file.type.startsWith('image/')) {
+                videoElement.src = ''; backgroundImage = new Image(); backgroundImage.src = url;
+                backgroundImage.onload = () => drawBackground(); useVideoAudio = false; audioInput.disabled = false;
+            } else if (file.type.startsWith('video/')) {
+                backgroundImage = null; videoElement.src = url;
+                videoElement.onloadedmetadata = () => {
+                    const hasAudio = videoElement.mozHasAudio || Boolean(videoElement.webkitAudioDecodedByteCount) || Boolean(videoElement.audioTracks?.length > 0);
+                    if(hasAudio) {
+                        initAudioContext(); audioInput.disabled = true;
+                        try { audioSource.disconnect(); } catch(err) {}
+                        videoSource.connect(analyser); useVideoAudio = true;
+                    }
+                    updateUI();
+                };
+                videoElement.oncanplay = () => drawBackground();
+            }
+            updateUI();
+        });
+
+        audioInput.addEventListener('change', (e) => {
+            if (useVideoAudio) return;
+            playlist = Array.from(e.target.files);
+            if (playlist.length === 0) { updateUI(); return; }
+            currentTrackIndex = 0;
+            audioElement.src = URL.createObjectURL(playlist[currentTrackIndex]);
+            initAudioContext();
+            try { videoSource.disconnect(); } catch(err) {}
+            audioSource.connect(analyser); useVideoAudio = false;
+            updateUI();
+        });
+
+        djLogoInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) { djLogoImage = null; return; }
+            djLogoImage = new Image();
+            djLogoImage.src = URL.createObjectURL(file);
+        });
+
+        audioElement.addEventListener('ended', () => {
+            currentTrackIndex++;
+            if (currentTrackIndex < playlist.length) playTrack(currentTrackIndex);
+            else {
+                if (mediaRecorder?.state === 'recording') stopRecording();
+                else stopPlayback();
+            }
+        });
+
+        previewBtn.addEventListener('click', () => { if (isPlaying) stopPlayback(); else startPlayback(); });
+        recordBtn.addEventListener('click', () => { if (mediaRecorder?.state === 'recording') stopRecording(); else startRecording(); });
+
+        const initParticles = (type, width, height) => {
+            particlesArray = []; const particleCount = 150;
+            if (type === 'particle-rain') {
+                for(let i=0; i < particleCount; i++) particlesArray.push({ x: Math.random() * width, y: Math.random() * height, speed: Math.random() * 2 + 0.5, size: Math.random() * 2 + 1 });
+            } else if (type === 'spinning-galaxy') {
+                 for(let i=0; i < particleCount; i++) particlesArray.push({ radius: Math.random() * (width/3), angle: Math.random() * Math.PI * 2, speed: (Math.random() - 0.5) * 0.02, size: Math.random() * 2 + 1 });
+            }
+        }
+
+        spectrumType.addEventListener('change', () => {
+            const type = spectrumType.value;
+            const barBasedTypes = ['bars', 'bouncing-bars', 'circle-bars'];
+            barControls.style.display = barBasedTypes.includes(type) ? 'grid' : 'none';
+            if (type === 'bouncing-bars') ballHeights = new Array(parseInt(spectrumNumBars.value)).fill(0);
+        });
+        
+        particleType.addEventListener('change', () => {
+            const type = particleType.value;
+            particleControls.style.display = type !== 'none' ? 'block' : 'none';
+            if(type !== 'none') initParticles(type, canvas.width, canvas.height);
+        });
+
+        bloomEffect.addEventListener('change', (e) => {
+            bloomIntensityContainer.style.display = e.target.checked ? 'block' : 'none';
+        });
+
+        textPositionPresets.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'BUTTON') return;
+            const pos = e.target.dataset.pos;
+            const positions = {
+                'top-left': { x: 2, y: 5, align: 'left', base: 'top' },
+                'top-center': { x: 50, y: 5, align: 'center', base: 'top' },
+                'top-right': { x: 98, y: 5, align: 'right', base: 'top' },
+                'middle-left': { x: 2, y: 50, align: 'left', base: 'middle' },
+                'middle-center': { x: 50, y: 50, align: 'center', base: 'middle' },
+                'middle-right': { x: 98, y: 50, align: 'right', base: 'middle' },
+                'bottom-left': { x: 2, y: 95, align: 'left', base: 'bottom' },
+                'bottom-center': { x: 50, y: 95, align: 'center', base: 'bottom' },
+                'bottom-right': { x: 98, y: 95, align: 'right', base: 'bottom' },
+            };
+            const newPos = positions[pos];
+            if (newPos) {
+                textPosX.value = newPos.x;
+                textPosY.value = newPos.y;
+                currentTextAlign = newPos.align;
+                currentTextBaseline = newPos.base;
+            }
+        });
+
+        // --- Logika Preset ---
+        const populatePresets = () => {
+            loadPresetSelect.innerHTML = '<option value="">Muat Preset...</option>';
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('visualizerPreset_')) {
+                    const name = key.replace('visualizerPreset_', '');
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    loadPresetSelect.appendChild(option);
+                }
+            }
+        };
+
+        savePresetBtn.addEventListener('click', () => {
+            const name = presetName.value.trim();
+            if (!name) { alert('Silakan masukkan nama preset.'); return; }
+            
+            const settings = {};
+            document.querySelectorAll('.control-input').forEach(el => {
+                settings[el.id] = el.type === 'checkbox' ? el.checked : el.value;
+            });
+            
+            localStorage.setItem(`visualizerPreset_${name}`, JSON.stringify(settings));
+            populatePresets();
+            presetName.value = '';
+            alert(`Preset "${name}" berhasil disimpan!`);
+        });
+
+        loadPresetSelect.addEventListener('change', (e) => {
+            const name = e.target.value;
+            if (!name) return;
+
+            const settings = JSON.parse(localStorage.getItem(`visualizerPreset_${name}`));
+            if (!settings) return;
+
+            for (const id in settings) {
+                const el = document.getElementById(id);
+                if (el) {
+                    if (el.type === 'checkbox') el.checked = settings[id];
+                    else el.value = settings[id];
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }
+        });
+
+
+        // --- Logika Playback & Visualisasi ---
+        const playTrack = (index) => {
+            if (useVideoAudio || index >= playlist.length) return;
+            audioElement.src = URL.createObjectURL(playlist[index]);
+            audioElement.play();
+        };
+
+        const startPlayback = () => {
+            if (audioContext?.state === 'suspended') audioContext.resume();
+            if (useVideoAudio) videoElement.play();
+            else {
+                currentTrackIndex = 0;
+                playTrack(currentTrackIndex);
+                if (videoElement.src) videoElement.play();
+            }
+            isPlaying = true;
+            previewBtn.textContent = 'Hentikan Pratinjau';
+            recordingControls.classList.remove('hidden');
+            renderVisualizer();
+        };
+
+        const stopPlayback = () => {
+            const mediaToStop = useVideoAudio ? videoElement : audioElement;
+            mediaToStop.pause(); mediaToStop.currentTime = 0;
+            if (videoElement.src && !useVideoAudio) { videoElement.pause(); videoElement.currentTime = 0; }
+            currentTrackIndex = 0;
+            if (playlist.length > 0) audioElement.src = URL.createObjectURL(playlist[0]);
+            isPlaying = false;
+            previewBtn.textContent = 'Mulai Pratinjau';
+            recordingControls.classList.add('hidden');
+            cancelAnimationFrame(animationFrameId);
+            drawBackground();
+            drawTextOverlay();
+        };
+        
+        const drawBackground = () => {
+            ctx.save();
+            const mediaElement = backgroundImage || (videoElement.src ? videoElement : null);
+            if (bgPulseEffect.checked && isPlaying && dataArray) {
+                const bass = (dataArray[1] + dataArray[2] + dataArray[3]) / 3;
+                const scale = 1 + (bass / 255) * 0.05;
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.scale(scale, scale);
+                ctx.translate(-canvas.width / 2, -canvas.height / 2);
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (mediaElement && (mediaElement.complete !== false || videoElement.readyState >= 2)) {
+                ctx.drawImage(mediaElement, 0, 0, canvas.width, canvas.height);
+            } else {
+                 ctx.fillStyle = '#000';
+                 ctx.fillRect(0,0, canvas.width, canvas.height);
+            }
+            ctx.restore();
+        }
+
+        const drawTextOverlay = () => {
+            const line1 = textLine1.value;
+            const line2 = textLine2.value;
+            if (!line1 && !line2) return;
+
+            ctx.save();
+            if (bloomEffect.checked) {
+                ctx.shadowColor = textColor.value;
+                ctx.shadowBlur = bloomIntensity.value;
+            }
+            ctx.fillStyle = textColor.value;
+            ctx.font = `${textFontSize.value}px "${textFontFamily.value}"`;
+            ctx.textAlign = currentTextAlign;
+            ctx.textBaseline = currentTextBaseline;
+
+            const x = (textPosX.value / 100) * canvas.width;
+            const y = (textPosY.value / 100) * canvas.height;
+            const lineHeight = parseInt(textFontSize.value) * 1.2;
+
+            if (line1 && line2) {
+                ctx.fillText(line1, x, y - lineHeight / 2);
+                ctx.fillText(line2, x, y + lineHeight / 2);
+            } else {
+                ctx.fillText(line1 || line2, x, y);
+            }
+            ctx.restore();
+        };
+
+        const renderVisualizer = () => {
+            animationFrameId = requestAnimationFrame(renderVisualizer);
+            if (!analyser) return;
+            analyser.getByteFrequencyData(dataArray);
+            rotationAngle += 0.005;
+
+            drawBackground();
+            
+            ctx.save();
+            if (bloomEffect.checked) {
+                ctx.shadowColor = spectrumColor1.value;
+                ctx.shadowBlur = bloomIntensity.value;
+            }
+            // Render Spectrum
+            const spectrumStyle = spectrumType.value;
+            if (spectrumStyle !== 'none') {
+                const sWidth = (spectrumWidth.value / 100) * canvas.width;
+                const sHeight = (spectrumHeight.value / 100) * canvas.height;
+                const sX = (spectrumPosX.value / 100) * (canvas.width - sWidth);
+                const sY = (spectrumPosY.value / 100) * (canvas.height - sHeight);
+                
+                ctx.save();
+                ctx.translate(sX, sY);
+                
+                const gradient = ctx.createLinearGradient(0, sHeight, 0, 0);
+                gradient.addColorStop(0, spectrumColor1.value);
+                gradient.addColorStop(1, spectrumColor2.value);
+                ctx.fillStyle = gradient;
+                ctx.strokeStyle = gradient;
+
+                switch(spectrumStyle) {
+                    case 'bars': drawBars(sWidth, sHeight); break;
+                    case 'bouncing-bars': drawBouncingBars(sWidth, sHeight); break;
+                    case 'dj-disc': drawDjDisc(sWidth, sHeight); break;
+                    case 'wave': drawWave(sWidth, sHeight); break;
+                    case 'circle-bars': drawCircleBars(sWidth, sHeight); break;
+                    case 'dual-lines': drawDualLines(sWidth, sHeight); break;
+                }
+                ctx.restore();
+            }
+            ctx.restore(); // Restore from bloom effect
+
+            // Render Particles
+            ctx.save();
+            if (bloomEffect.checked) {
+                ctx.shadowColor = '#FFFFFF';
+                ctx.shadowBlur = bloomIntensity.value;
+            }
+            const particleStyle = particleType.value;
+            if (particleStyle !== 'none') {
+                switch(particleStyle) {
+                    case 'particles': drawParticles(canvas.width, canvas.height); break;
+                    case 'particle-rain': drawParticleRain(canvas.width, canvas.height); break;
+                    case 'spinning-galaxy': drawSpinningGalaxy(canvas.width, canvas.height); break;
+                }
+            }
+            ctx.restore();
+
+            drawTextOverlay();
+        };
+
+        // --- Gaya Visualizer ---
+        const drawShape = (x, y, size) => {
+            const shape = particleShape.value;
+            ctx.beginPath();
+            if (shape === 'circle') {
+                ctx.arc(x, y, size, 0, 2 * Math.PI);
+            } else if (shape === 'square') {
+                ctx.rect(x - size, y - size, size * 2, size * 2);
+            } else if (shape === 'triangle') {
+                ctx.moveTo(x, y - size);
+                ctx.lineTo(x - size, y + size);
+                ctx.lineTo(x + size, y + size);
+                ctx.closePath();
+            }
+            ctx.fill();
+        };
+        const drawBars = (width, height) => {
+            const numBars = parseInt(spectrumNumBars.value);
+            const barThickness = parseInt(spectrumBarThickness.value);
+            const totalBarSpace = width / numBars;
+            for (let i = 0; i < numBars; i++) {
+                const dataIndex = Math.floor(i * (bufferLength / numBars));
+                const barHeight = (dataArray[dataIndex] / 255.0) * height;
+                const barX = i * totalBarSpace + (totalBarSpace - barThickness) / 2;
+                ctx.fillRect(barX, height - barHeight, barThickness, barHeight);
+            }
+        };
+        const drawBouncingBars = (width, height) => {
+            const numBars = parseInt(spectrumNumBars.value);
+            if (ballHeights.length !== numBars) ballHeights = new Array(numBars).fill(0);
+            const barThickness = parseInt(spectrumBarThickness.value);
+            const totalBarSpace = width / numBars;
+            const gravity = 1.5;
+            
+            for (let i = 0; i < numBars; i++) {
+                const dataIndex = Math.floor(i * (bufferLength / numBars));
+                const barHeight = (dataArray[dataIndex] / 255.0) * height;
+                const barX = i * totalBarSpace + (totalBarSpace - barThickness) / 2;
+                ctx.fillRect(barX, height - barHeight, barThickness, barHeight);
+                if (barHeight > ballHeights[i]) {
+                    ballHeights[i] = barHeight;
+                } else {
+                    ballHeights[i] = Math.max(ballHeights[i] - gravity, 0);
+                }
+                
+                ctx.beginPath();
+                const ballRadius = barThickness;
+                const ballCenterX = barX + barThickness / 2;
+                ctx.arc(ballCenterX, height - ballHeights[i] - ballRadius, ballRadius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        };
+        const drawWave = (width, height) => {
+             ctx.lineWidth = 3;
+            ctx.beginPath();
+            const sliceWidth = width * 1.0 / bufferLength;
+            let x = 0;
+            for (let i = 0; i < bufferLength; i++) {
+                const v = dataArray[i] / 128.0;
+                const y = v * (height / 2);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+                x += sliceWidth;
+            }
+            ctx.lineTo(width, height / 2);
+            ctx.stroke();
+        };
+        const drawCircleBars = (width, height) => {
+            const numBars = parseInt(spectrumNumBars.value);
+            const barThickness = parseInt(spectrumBarThickness.value);
+            const centerX = width/2, centerY = height/2;
+            const radius = Math.min(width, height) * 0.2;
+            const maxBarHeight = Math.min(width, height) * 0.25;
+            for(let i=0; i<numBars; i++){
+                const dataIndex = Math.floor(i * (bufferLength / numBars));
+                const barHeight = (dataArray[dataIndex] / 255) * maxBarHeight;
+                const angle = (i/numBars) * Math.PI * 2;
+                const x1 = centerX + Math.cos(angle) * radius;
+                const y1 = centerY + Math.sin(angle) * radius;
+                const x2 = centerX + Math.cos(angle) * (radius + barHeight);
+                const y2 = centerY + Math.sin(angle) * (radius + barHeight);
+                ctx.lineWidth = barThickness;
+                ctx.beginPath();
+                ctx.moveTo(x1,y1);
+                ctx.lineTo(x2,y2);
+                ctx.stroke();
+            }
+        };
+        const drawDjDisc = (width, height) => {
+            const centerX = width/2, centerY = height/2;
+            const discRadius = Math.min(width, height) / 2.5;
+            const bass = (dataArray[1] + dataArray[2] + dataArray[3])/3;
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(rotationAngle);
+            ctx.beginPath();
+            ctx.arc(0,0, discRadius, 0, 2*Math.PI);
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fill();
+            ctx.strokeStyle = '#333333';
+            ctx.lineWidth = 1;
+            for (let i = discRadius * 0.95; i > discRadius * 0.4; i -= 4) {
+                 ctx.beginPath();
+                 ctx.arc(0, 0, i, 0, 2 * Math.PI);
+                 ctx.stroke();
+            }
+            ctx.restore();
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            const labelRadius = discRadius * 0.3;
+            const pulse = (bass/255) * (discRadius * 0.1);
+            if (djLogoImage && djLogoImage.complete) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(0,0, labelRadius + pulse, 0, 2 * Math.PI);
+                ctx.clip();
+                const logoSize = (labelRadius + pulse) * 2;
+                ctx.drawImage(djLogoImage, -logoSize/2, -logoSize/2, logoSize, logoSize);
+                ctx.restore();
+            } else {
+                ctx.beginPath();
+                ctx.arc(0,0,labelRadius + pulse, 0, 2*Math.PI);
+                ctx.fillStyle = spectrumColor1.value;
+                ctx.fill();
+            }
+            ctx.restore();
+        };
+        const drawDualLines = (width, height) => {
+             ctx.lineWidth = 3;
+            ctx.beginPath();
+            const sliceWidth = width * 1.0 / bufferLength;
+            let x = 0;
+            const centerY = height/2;
+            for (let i = 0; i < bufferLength; i++) {
+                const v = dataArray[i] / 128.0;
+                const y = centerY - (v * centerY / 2);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+                x += sliceWidth;
+            }
+            x=0;
+            for (let i = 0; i < bufferLength; i++) {
+                const v = dataArray[i] / 128.0;
+                const y = centerY + (v * centerY / 2);
+                 if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+                x += sliceWidth;
+            }
+            ctx.stroke();
+        };
+        const drawParticles = (w, h) => {
+            const opac = particleOpacity.value / 100;
+            for (let i = 0; i < bufferLength; i++) {
+                const mag = dataArray[i] / 255;
+                if (mag > 0.6) {
+                    const x = Math.random() * w, y = Math.random() * h, r = mag * 5;
+                    ctx.fillStyle = `rgba(255, 255, 255, ${opac * mag})`;
+                    drawShape(x, y, r);
+                }
+            }
+        };
+        const drawParticleRain = (w, h) => {
+            const avg = dataArray.reduce((a, v) => a + v, 0) / bufferLength, opac = particleOpacity.value / 100;
+            particlesArray.forEach(p => {
+                p.y += p.speed;
+                if(p.y > h) { p.y = 0; p.x = Math.random() * w; }
+                const finalOpac = opac * Math.max(0, avg / 128 - 0.2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${finalOpac})`;
+                drawShape(p.x, p.y, p.size);
+            });
+        }
+        const drawSpinningGalaxy = (w, h) => {
+            const cX = w / 2, cY = h / 2, opac = particleOpacity.value / 100;
+            particlesArray.forEach((p, i) => {
+                p.angle += p.speed;
+                const mag = dataArray[i % bufferLength] / 255.0, r = p.radius + mag * 50;
+                const x = cX + Math.cos(p.angle) * r, y = cY + Math.sin(p.angle) * r;
+                const finalOpac = opac * mag;
+                ctx.fillStyle = `rgba(255, 255, 255, ${finalOpac})`;
+                drawShape(x, y, p.size);
+            });
+        };
+
+        // --- Logika Perekaman ---
+        const startRecording = () => {
+            const activeSource = useVideoAudio ? videoSource : audioSource;
+            if (!activeSource) return;
+            recordedChunks = [];
+            const canvasStream = canvas.captureStream(30); // FPS set to 30
+            const audioStreamDestination = audioContext.createMediaStreamDestination();
+            activeSource.connect(audioStreamDestination);
+            const audioStream = audioStreamDestination.stream;
+            const combinedStream = new MediaStream([...canvasStream.getVideoTracks(), ...audioStream.getAudioTracks()]);
+            const options = { 
+                mimeType: 'video/webm; codecs=vp9,opus',
+                videoBitsPerSecond: 5000000 // Bitrate set to 5Mbps
+            };
+            try { mediaRecorder = new MediaRecorder(combinedStream, options); }
+            catch (e) { status.textContent = 'Error: Browser tidak mendukung format rekaman.'; status.classList.remove('hidden'); return; }
+            mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+            mediaRecorder.onstop = () => {
+                stopPlayback();
+                const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none'; a.href = url; a.download = `audio-visualizer-${Date.now()}.webm`;
+                document.body.appendChild(a); a.click();
+                window.URL.revokeObjectURL(url); document.body.removeChild(a);
+                status.textContent = 'Video berhasil diunduh!'; recordBtn.textContent = 'Mulai Rekam & Ekspor Video';
+                setTimeout(() => { status.classList.add('hidden')}, 4000);
+            };
+            const mediaToPlay = useVideoAudio ? videoElement : audioElement;
+            mediaToPlay.onended = () => { if (useVideoAudio && mediaRecorder?.state === 'recording') stopRecording(); };
+            mediaRecorder.start();
+            startPlayback();
+            status.textContent = 'Merekam... Video akan diunduh saat audio selesai.';
+            status.classList.remove('hidden');
+            recordBtn.textContent = 'Berhenti Merekam';
+        };
+        const stopRecording = () => { if(mediaRecorder) mediaRecorder.stop(); };
+        
+        // --- Inisialisasi ---
+        populatePresets();
+        ['spectrumType', 'particleType', 'bloomEffect'].forEach(id => document.getElementById(id).dispatchEvent(new Event('change')));
+        drawBackground();
+        updateUI();
+    });
+    </script>
+</body>
+</html>
+
