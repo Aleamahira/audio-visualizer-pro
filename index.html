@@ -3,1401 +3,1434 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Audio Visualizer Pro</title>
+    <title>Audio Visualizer Pro Ultimate</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lobster&family=Poppins:wght@400;700&family=Roboto+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lobster&family=Poppins:wght@400;600;700&family=Roboto+Mono&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #111827; /* bg-gray-900 */
-            overflow: hidden; /* Prevent body scroll */
+            background-color: #0f172a; /* Slate 900 */
+            color: #e2e8f0;
+            overflow-x: hidden;
         }
-        .label-text {
-            color: #d1d5db; /* text-gray-300 */
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
         }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
         .control-panel {
-            background-color: #1f2937; /* bg-gray-800 */
-            border-top: 1px solid #374151; /* border-gray-700 */
+            background-color: #1e293b;
+            border-top: 1px solid #334155;
         }
-        .preview-panel {
-            background-color: #000;
-            /* Container will manage the canvas size */
+
+        .preview-container {
+            background: #000;
+            background-image: radial-gradient(circle at center, #1a1a1a 1px, transparent 1px);
+            background-size: 20px 20px;
         }
-        .btn {
-            transition: all 0.2s ease-in-out;
-        }
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-        }
-        .btn-primary {
-            background-color: #4f46e5;
-            color: white;
-        }
-        .btn-primary:hover {
-            background-color: #4338ca;
-        }
-        .btn-secondary {
-            background-color: #374151;
-            color: #d1d5db;
-        }
-        .btn-secondary:hover {
-            background-color: #4b5563;
-        }
-        .btn-danger {
-            background-color: #dc2626;
-            color: white;
-        }
-        .btn-danger:hover {
-            background-color: #b91c1c;
-        }
-        .btn-disabled {
-            background-color: #4b5563;
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
-        #visualizerCanvas {
-            /* Now handled by JS, but keeping these for visual appearance within the container */
-            display: block;
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-            border-radius: 0.5rem;
-        }
+
+        /* Custom Range Slider */
         input[type="range"] {
             -webkit-appearance: none;
-            appearance: none;
-            width: 100%;
-            height: 8px;
-            background: #4b5563;
-            border-radius: 5px;
-            outline: none;
-            opacity: 0.7;
-            transition: opacity .2s;
+            background: transparent;
         }
-        input[type="range"]:hover {
-             opacity: 1;
+        input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            background: #334155;
+            border-radius: 4px;
         }
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            background: #4f46e5;
-            cursor: pointer;
+            height: 16px;
+            width: 16px;
             border-radius: 50%;
-        }
-        input[type="range"]::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
-            background: #4f46e5;
+            background: #6366f1; /* Indigo 500 */
+            margin-top: -5px;
             cursor: pointer;
-            border-radius: 50%;
+            transition: transform 0.1s;
         }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            background: #818cf8;
+        }
+
+        /* Checkbox Toggle */
         .toggle-checkbox:checked {
             right: 0;
-            border-color: #4f46e5;
+            border-color: #6366f1;
         }
         .toggle-checkbox:checked + .toggle-label {
-            background-color: #4f46e5;
+            background-color: #6366f1;
         }
+
         .preset-btn {
-            background-color: #374151;
-            border: 1px solid #4b5563;
+            background-color: #334155;
+            border: 1px solid #475569;
             width: 2rem;
             height: 2rem;
+            border-radius: 0.375rem;
+            transition: all 0.2s;
         }
         .preset-btn:hover {
-            background-color: #4f46e5;
+            background-color: #6366f1;
+            border-color: #818cf8;
         }
+        .preset-btn.active {
+            background-color: #4f46e5;
+            border-color: #818cf8;
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5);
+        }
+
+        /* Loader */
+        .loader {
+            border: 3px solid rgba(255,255,255,0.1);
+            border-left-color: #6366f1;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="text-white">
+<body class="h-screen flex flex-col">
 
-    <div class="flex flex-col h-screen">
-        <!-- Preview Panel -->
-        <div id="previewPanel" class="w-full h-[60vh] p-4 flex items-center justify-center preview-panel relative">
-            <!-- Canvas size is now managed by JS to maintain the 16:9 ratio in internal resolution -->
-            <canvas id="visualizerCanvas" width="1280" height="720"></canvas>
+    <!-- Main Layout -->
+    <div class="flex flex-col h-full md:flex-row">
+        
+        <!-- LEFT/TOP: Preview Area -->
+        <div id="previewPanel" class="w-full md:w-2/3 h-[50vh] md:h-full relative flex items-center justify-center preview-container overflow-hidden">
+            <div class="relative shadow-2xl shadow-black/50 rounded-lg overflow-hidden" style="aspect-ratio: 16/9; max-height: 95%; max-width: 95%;">
+                <canvas id="visualizerCanvas" width="1280" height="720" class="w-full h-full object-contain block bg-black"></canvas>
+            </div>
+            
+            <!-- Hidden Media Elements -->
             <audio id="audioElement" crossOrigin="anonymous"></audio>
             <video id="videoElement" crossOrigin="anonymous" loop playsinline muted class="hidden"></video>
+            
+            <!-- Overlay Status -->
+            <div id="overlayStatus" class="absolute top-4 left-4 bg-black/70 backdrop-blur-sm px-4 py-2 rounded-full text-xs font-mono text-indigo-300 hidden border border-indigo-500/30">
+                <span class="loader"></span> Processing...
+            </div>
         </div>
-        
-        <!-- Control Panel -->
-        <div class="w-full h-[40vh] p-6 control-panel overflow-y-auto">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 max-w-7xl mx-auto">
+
+        <!-- RIGHT/BOTTOM: Controls -->
+        <div class="w-full md:w-1/3 h-[50vh] md:h-full control-panel flex flex-col overflow-hidden z-10 shadow-xl">
+            
+            <!-- Header -->
+            <div class="p-4 bg-slate-800 border-b border-slate-700 flex justify-between items-center shrink-0">
+                <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                    Audio Visualizer Pro
+                </h1>
+                <div class="flex gap-2">
+                    <button id="previewBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-1.5 rounded-md text-sm font-semibold shadow-lg shadow-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Play
+                    </button>
+                </div>
+            </div>
+
+            <!-- Scrollable Settings -->
+            <div class="flex-1 overflow-y-auto p-5 space-y-6">
                 
-                <!-- Column 1: Media, Teks & Preset -->
-                <div class="space-y-4">
-                    <h2 class="text-lg font-semibold label-text pb-2 border-b border-gray-700">Media, Teks & Preset</h2>
-                    <div>
-                        <label class="block mb-2 text-xs font-medium label-text" for="bgInput">1. Latar Belakang</label>
-                        <input type="file" id="bgInput" accept="image/*,video/*" class="control-input block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer">
-                    </div>
-                    <div>
-                        <label class="block mb-2 text-xs font-medium label-text" for="audioInput">2. Audio</label>
-                        <input type="file" id="audioInput" accept="audio/*" multiple class="control-input block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer">
-                    </div>
-                    <div>
-                        <label class="block mb-2 text-xs font-medium label-text" for="djLogoInput">3. Logo Piringan DJ (Opsional)</label>
-                        <input type="file" id="djLogoInput" accept="image/*" class="control-input block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer">
-                    </div>
-                     <div>
-                        <label class="block mb-2 text-xs font-medium label-text" for="textLine1">4. Teks Overlay</label>
-                        <input type="text" id="textLine1" placeholder="Baris Teks 1 (e.g., Judul Lagu)" class="control-input bg-gray-700 border border-gray-600 text-white text-sm rounded-lg w-full p-2.5">
-                        <input type="text" id="textLine2" placeholder="Baris Teks 2 (e.g., Nama Artis)" class="control-input bg-gray-700 border border-gray-600 text-white text-sm rounded-lg w-full p-2.5 mt-2">
-                    </div>
-                    <div class="pt-2 border-t border-gray-700">
-                        <label class="block mb-2 text-xs font-medium label-text">Preset Pengaturan</label>
-                        <div class="flex gap-2">
-                             <input type="text" id="presetName" placeholder="Nama Preset" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg w-full p-2.5">
-                             <button id="savePresetBtn" class="px-3 py-2 text-sm rounded-lg btn btn-secondary flex-shrink-0">Simpan</button>
-                        </div>
-                        <div class="flex gap-2 mt-2">
-                             <select id="loadPresetSelect" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg w-full p-2.5">
-                                 <option value="">Muat Preset...</option>
-                             </select>
-                             <button id="deletePresetBtn" class="px-3 py-2 text-sm rounded-lg btn btn-danger flex-shrink-0" style="display: none;">Hapus</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Column 2: Spectrum -->
+                <!-- Section 1: Media -->
                 <div class="space-y-3">
-                     <h2 class="text-lg font-semibold label-text pb-2 border-b border-gray-700">Pengaturan Spektrum</h2>
-                     <div>
-                        <label for="spectrumType" class="block mb-2 text-xs font-medium label-text">Gaya Spektrum</label>
-                        <select id="spectrumType" class="control-input bg-gray-700 border border-gray-600 text-white text-sm rounded-lg w-full p-2.5">
-                            <option value="bars" selected>Batang Klasik</option>
-                            <option value="bouncing-bars">Batang & Bola Pantul</option>
-                            <option value="dj-disc">Piringan DJ</option>
-                            <option value="circle-bars">Batang Melingkar</option>
-                            <option value="ring-spectrum">Spektrum Cincin</option> 
-                            <option value="ncs-lines">Garis NCS</option> 
-                            <option value="wave-mesh">Mesh Gelombang (Glow)</option> 
-                            <option value="wireframe-3d">Lingkaran Kawat 3D</option> <!-- NEW OPTION 1 -->
-                            <option value="frequency-mirror">Cermin Frekuensi</option> <!-- NEW OPTION 2 -->
-                            <option value="dual-lines">Garis Ganda</option>
-                            <option value="wave">Gelombang</option>
-                            <option value="none">Tidak Ada</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block mb-2 text-xs font-medium label-text">Warna Spektrum (Gradien)</label>
-                        <div class="flex gap-2">
-                            <input type="color" id="spectrumColor1" value="#4F46E5" class="control-input p-1 h-10 w-full block bg-gray-700 border border-gray-600 cursor-pointer rounded-lg">
-                            <input type="color" id="spectrumColor2" value="#A855F7" class="control-input p-1 h-10 w-full block bg-gray-700 border border-gray-600 cursor-pointer rounded-lg">
+                    <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-700 pb-1">Media Sources</h2>
+                    
+                    <div class="grid grid-cols-1 gap-3">
+                        <div class="group">
+                            <label class="block text-xs text-slate-400 mb-1 group-hover:text-indigo-400 transition-colors">Background (Image/Video)</label>
+                            <input type="file" id="bgInput" accept="image/*,video/*" class="block w-full text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-slate-700 file:text-indigo-300 hover:file:bg-slate-600 cursor-pointer bg-slate-800 rounded-md border border-slate-700">
                         </div>
-                    </div>
-                     <div id="barControls" class="grid grid-cols-2 gap-x-4 gap-y-2">
-                        <div>
-                            <label for="spectrumNumBars" class="block mb-1 text-xs font-medium label-text">Jumlah Batang</label>
-                            <input id="spectrumNumBars" type="range" min="32" max="256" value="128" step="4" class="control-input w-full">
+                        <div class="group">
+                            <label class="block text-xs text-slate-400 mb-1 group-hover:text-indigo-400 transition-colors">Audio File</label>
+                            <input type="file" id="audioInput" accept="audio/*" class="block w-full text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-slate-700 file:text-indigo-300 hover:file:bg-slate-600 cursor-pointer bg-slate-800 rounded-md border border-slate-700">
                         </div>
-                        <div>
-                            <label for="spectrumBarThickness" class="block mb-1 text-xs font-medium label-text">Tebal Batang</label>
-                            <input id="spectrumBarThickness" type="range" min="1" max="50" value="5" class="control-input w-full">
+                        <div class="group">
+                            <label class="block text-xs text-slate-400 mb-1 group-hover:text-indigo-400 transition-colors">Logo Overlay (Optional)</label>
+                            <input type="file" id="djLogoInput" accept="image/*" class="block w-full text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-slate-700 file:text-indigo-300 hover:file:bg-slate-600 cursor-pointer bg-slate-800 rounded-md border border-slate-700">
                         </div>
                     </div>
                 </div>
 
-                <!-- Column 3: Particles & Advanced Effects -->
-                <div class="space-y-4">
-                    <h2 class="text-lg font-semibold label-text pb-2 border-b border-gray-700">Efek Lanjutan</h2>
-                     <div>
-                        <label for="particleType" class="block mb-2 text-xs font-medium label-text">Efek Partikel</label>
-                        <select id="particleType" class="control-input bg-gray-700 border border-gray-600 text-white text-sm rounded-lg w-full p-2.5">
-                            <option value="none" selected>Tidak Ada</option>
-                            <option value="particle-rain">Hujan Partikel</option>
-                            <option value="spinning-galaxy">Galaksi Berputar</option>
-                            <option value="particles">Partikel Energi</option>
-                        </select>
-                    </div>
-                     <div id="particleControls" class="space-y-2" style="display: none;">
-                          <label for="particleShape" class="block mb-2 text-xs font-medium label-text">Bentuk Partikel</label>
-                          <select id="particleShape" class="control-input bg-gray-700 border border-gray-600 text-white text-sm rounded-lg w-full p-2.5">
-                            <option value="circle">Lingkaran</option>
-                            <option value="square">Kotak</option>
-                            <option value="triangle">Segitiga</option>
-                          </select>
-                          <label for="particleOpacity" class="block mb-1 text-xs font-medium label-text">Opacity Partikel</label>
-                          <input id="particleOpacity" type="range" min="0" max="100" value="80" class="control-input w-full">
-                    </div>
-                    <div class="flex items-center justify-between pt-2 border-t border-gray-700">
-                        <span class="text-sm font-medium label-text">Denyut Latar</span>
-                        <div class="relative inline-block w-10 mr-2 align-middle select-none">
-                            <input type="checkbox" id="bgPulseEffect" class="control-input toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
-                            <label for="bgPulseEffect" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
+                <!-- Section 2: Spectrum -->
+                <div class="space-y-3">
+                    <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-700 pb-1">Spectrum Settings</h2>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="col-span-2">
+                            <label class="block text-xs text-slate-400 mb-1">Visual Style</label>
+                            <select id="spectrumType" class="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-md p-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="bars">Classic Bars</option>
+                                <option value="digital-eq">Digital EQ (Retro)</option> <!-- New -->
+                                <option value="classic-circle">Classic Round Bars</option>
+                                <option value="eclipse">Eclipse Aura (New)</option> <!-- New -->
+                                <option value="spiral-wave">Spiral Wave (New)</option> <!-- New -->
+                                <option value="hexagon">Hexagon Pulse</option>
+                                <option value="seismic">Seismic Wave</option>
+                                <option value="bouncing-bars">Bouncing Bars</option>
+                                <option value="circle-bars">Radial Bars</option>
+                                <option value="dj-disc">Vinyl Disc</option>
+                                <option value="ring-spectrum">Neon Ring</option>  
+                                <option value="ncs-lines">NCS Wave</option>  
+                                <option value="wave-mesh">Cyber Mesh</option>  
+                                <option value="wireframe-3d">3D Tunnel</option>
+                                <option value="frequency-mirror">Mirror Quad</option>
+                                <option value="dual-lines">Dual Horizon</option>
+                                <option value="wave">Oscilloscope</option>
+                                <option value="none">Hidden</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Color Start</label>
+                            <input type="color" id="spectrumColor1" value="#6366f1" class="w-full h-8 rounded cursor-pointer bg-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Color End</label>
+                            <input type="color" id="spectrumColor2" value="#ec4899" class="w-full h-8 rounded cursor-pointer bg-transparent">
                         </div>
                     </div>
-                     <div class="flex items-center justify-between">
-                        <span class="text-sm font-medium label-text">Efek Pendar (Bloom)</span>
-                        <div class="relative inline-block w-10 mr-2 align-middle select-none">
-                            <input type="checkbox" id="bloomEffect" class="control-input toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
-                            <label for="bloomEffect" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
+
+                    <div id="barControls" class="grid grid-cols-2 gap-3 p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Bar Count</label>
+                            <input id="spectrumNumBars" type="range" min="32" max="256" value="64" step="16" class="w-full">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Thickness</label>
+                            <input id="spectrumBarThickness" type="range" min="2" max="40" value="8" class="w-full">
                         </div>
                     </div>
-                    <div id="bloomIntensityContainer" class="hidden">
-                        <label for="bloomIntensity" class="block mb-1 text-xs font-medium label-text">Intensitas Pendar</label>
-                        <input id="bloomIntensity" type="range" min="5" max="50" value="15" class="control-input w-full">
+
+                    <!-- New Positioning Controls -->
+                     <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Scale X</label>
+                            <input id="spectrumWidth" type="range" min="10" max="150" value="100" class="w-full">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Scale Y</label>
+                            <input id="spectrumHeight" type="range" min="10" max="150" value="50" class="w-full">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Position X</label>
+                            <input id="spectrumPosX" type="range" min="0" max="100" value="50" class="w-full">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Position Y</label>
+                            <input id="spectrumPosY" type="range" min="0" max="100" value="50" class="w-full">
+                        </div>
                     </div>
                 </div>
 
-                     <!-- Column 4: Text, Position & Actions -->
-                <div class="space-y-4">
-                    <h2 class="text-lg font-semibold label-text pb-2 border-b border-gray-700">Teks, Posisi & Aksi</h2>
-                     <div id="textControls" class="space-y-2">
-                        <label class="block text-xs font-medium label-text">Gaya Teks</label>
-                         <input type="color" id="textColor" value="#FFFFFF" class="control-input p-1 h-10 w-full block bg-gray-700 border border-gray-600 cursor-pointer rounded-lg">
-                        <select id="textFontFamily" class="control-input bg-gray-700 border border-gray-600 text-white text-sm rounded-lg w-full p-2.5">
-                            <option style="font-family: 'Poppins', sans-serif;" value="Poppins">Poppins</option>
-                            <option style="font-family: 'Bebas Neue', cursive;" value="Bebas Neue">Bebas Neue</option>
-                            <option style="font-family: 'Lobster', cursive;" value="Lobster">Lobster</option>
-                            <option style="font-family: 'Roboto Mono', monospace;" value="Roboto Mono">Roboto Mono</option>
-                            <option style="font-family: Arial, sans-serif;" value="Arial">Arial</option>
-                        </select>
-                          <label for="textFontSize" class="block mb-1 text-xs font-medium label-text">Ukuran Font</label>
-                          <input id="textFontSize" type="range" min="12" max="120" value="48" class="control-input w-full">
-                    </div>
-                    <div class="grid grid-cols-2 gap-x-4 gap-y-2">
-                          <h3 class="col-span-2 text-sm font-medium label-text -mb-1">Posisi Spektrum</h3>
-                          <div>
-                              <label for="spectrumWidth" class="block mb-1 text-xs font-medium label-text">Lebar (%)</label>
-                              <input id="spectrumWidth" type="range" min="10" max="100" value="100" class="control-input w-full">
-                          </div>
-                           <div>
-                              <label for="spectrumHeight" class="block mb-1 text-xs font-medium label-text">Tinggi (%)</label>
-                              <input id="spectrumHeight" type="range" min="10" max="100" value="50" class="control-input w-full">
-                           </div>
-                           <div>
-                            <label for="spectrumPosX" class="block mb-1 text-xs font-medium label-text">X (%)</label>
-                            <input id="spectrumPosX" type="range" min="0" max="100" value="50" class="control-input w-full">
+                <!-- Section 3: Effects -->
+                <div class="space-y-3">
+                    <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-700 pb-1">FX & Particles</h2>
+                    
+                    <div class="flex justify-between items-center bg-slate-800 p-2 rounded-md border border-slate-700">
+                        <span class="text-sm text-slate-300">Bloom (Glow)</span>
+                        <div class="relative inline-block w-10 align-middle select-none">
+                            <input type="checkbox" id="bloomEffect" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300"/>
+                            <label for="bloomEffect" class="toggle-label block overflow-hidden h-5 rounded-full bg-slate-600 cursor-pointer transition-all duration-300"></label>
                         </div>
-                          <div>
-                              <label for="spectrumPosY" class="block mb-1 text-xs font-medium label-text">Y (%)</label>
-                              <input id="spectrumPosY" type="range" min="0" max="100" value="75" class="control-input w-full">
-                          </div>
-                          <h3 class="col-span-2 text-sm font-medium label-text mt-2 -mb-1">Posisi Teks</h3>
-                        <div>
-                            <label for="textPosX" class="block mb-1 text-xs font-medium label-text">X (%)</label>
-                            <input id="textPosX" type="range" min="0" max="100" value="50" class="control-input w-full">
-                        </div>
-                          <div>
-                              <label for="textPosY" class="block mb-1 text-xs font-medium label-text">Y (%)</label>
-                              <input id="textPosY" type="range" min="0" max="100" value="90" class="control-input w-full">
-                          </div>
                     </div>
+                    <div id="bloomIntensityContainer" class="hidden px-2">
+                        <label class="block text-xs text-slate-400 mb-1">Glow Intensity</label>
+                        <input id="bloomIntensity" type="range" min="5" max="60" value="20" class="w-full">
+                    </div>
+
+                    <div class="flex justify-between items-center bg-slate-800 p-2 rounded-md border border-slate-700">
+                        <span class="text-sm text-slate-300">Background Pulse</span>
+                        <div class="relative inline-block w-10 align-middle select-none">
+                            <input type="checkbox" id="bgPulseEffect" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300"/>
+                            <label for="bgPulseEffect" class="toggle-label block overflow-hidden h-5 rounded-full bg-slate-600 cursor-pointer transition-all duration-300"></label>
+                        </div>
+                    </div>
+
                     <div>
-                        <div id="text-position-presets" class="grid grid-cols-3 gap-2 mx-auto w-max">
-                            <button data-pos="top-left" class="preset-btn"></button> <button data-pos="top-center" class="preset-btn"></button> <button data-pos="top-right" class="preset-btn"></button>
-                            <button data-pos="middle-left" class="preset-btn"></button> <button data-pos="middle-center" class="preset-btn"></button> <button data-pos="middle-right" class="preset-btn"></button>
-                            <button data-pos="bottom-left" class="preset-btn"></button> <button data-pos="bottom-center" class="preset-btn"></button> <button data-pos="bottom-right" class="preset-btn"></button>
-                        </div>
+                        <label class="block text-xs text-slate-400 mb-1">Particle System</label>
+                        <select id="particleType" class="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-md p-2 outline-none">
+                            <option value="none">None</option>
+                            <option value="particles">Floating Dust</option>
+                            <option value="particle-rain">Digital Rain</option>
+                            <option value="spinning-galaxy">Galaxy Spiral</option>
+                        </select>
                     </div>
-                     <div class="space-y-3 pt-4 border-t border-gray-700">
-                        <button id="previewBtn" class="w-full font-bold py-2 px-4 rounded-lg btn btn-primary btn-disabled" disabled>Mulai Pratinjau</button>
-                        <div id="recording-controls" class="hidden">
-                            <button id="recordBtn" class="w-full font-bold py-2 px-4 rounded-lg btn btn-danger">Mulai Rekam & Ekspor Video</button>
-                             <div id="status" class="mt-2 p-2 text-center rounded-lg bg-gray-700 text-gray-300 text-sm hidden">Memproses...</div>
+                    <div id="particleControls" class="hidden grid grid-cols-2 gap-3">
+                        <select id="particleShape" class="bg-slate-800 border border-slate-700 text-white text-xs rounded-md p-1">
+                            <option value="circle">Circle</option>
+                            <option value="square">Square</option>
+                            <option value="triangle">Triangle</option>
+                        </select>
+                        <input id="particleOpacity" type="range" min="0" max="100" value="60" class="w-full">
+                    </div>
+                </div>
+
+                <!-- Section 4: Text -->
+                <div class="space-y-3">
+                    <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-700 pb-1">Text Overlay</h2>
+                    <div class="space-y-2">
+                        <input type="text" id="textLine1" placeholder="Song Title / Main Text" class="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-md p-2">
+                        <input type="text" id="textLine2" placeholder="Artist / Sub Text" class="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-md p-2">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                         <select id="textFontFamily" class="bg-slate-800 border border-slate-700 text-white text-xs rounded-md p-2">
+                            <option value="Poppins">Poppins (Modern)</option>
+                            <option value="Bebas Neue">Bebas Neue (Tall)</option>
+                            <option value="Lobster">Lobster (Cursive)</option>
+                            <option value="Roboto Mono">Roboto Mono (Code)</option>
+                        </select>
+                        <input id="textFontSize" type="range" min="20" max="150" value="60" class="w-full">
+                    </div>
+                    
+                     <!-- Text Positioning Grid -->
+                    <div class="flex flex-col gap-2">
+                        <label class="text-xs text-slate-400">Alignment Presets</label>
+                        <div id="text-position-presets" class="grid grid-cols-3 gap-2 w-24 mx-auto">
+                            <button data-pos="top-left" class="preset-btn"></button>
+                            <button data-pos="top-center" class="preset-btn"></button>
+                            <button data-pos="top-right" class="preset-btn"></button>
+                            <button data-pos="middle-left" class="preset-btn"></button>
+                            <button data-pos="middle-center" class="preset-btn"></button>
+                            <button data-pos="middle-right" class="preset-btn"></button>
+                            <button data-pos="bottom-left" class="preset-btn"></button>
+                            <button data-pos="bottom-center" class="preset-btn active"></button>
+                            <button data-pos="bottom-right" class="preset-btn"></button>
+                        </div>
+                        <!-- Hidden Manual Sliders for precision if needed later -->
+                        <div class="hidden">
+                             <input id="textPosX" type="range" min="0" max="100" value="50">
+                             <input id="textPosY" type="range" min="0" max="100" value="90">
                         </div>
                     </div>
                 </div>
+
+                 <!-- Section 5: Presets & Recording -->
+                <div class="space-y-3 pt-4 pb-10">
+                     <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-700 pb-1">Presets & Export</h2>
+                     
+                     <div class="flex gap-2">
+                        <input type="text" id="presetName" placeholder="New Preset Name" class="flex-1 bg-slate-800 border border-slate-700 text-white text-xs rounded-md p-2">
+                        <button id="savePresetBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 rounded-md text-xs">Save</button>
+                     </div>
+                     
+                     <div class="flex gap-2">
+                         <select id="loadPresetSelect" class="flex-1 bg-slate-800 border border-slate-700 text-white text-xs rounded-md p-2">
+                             <option value="">Load Preset...</option>
+                         </select>
+                         <button id="deletePresetBtn" class="bg-red-600 hover:bg-red-500 text-white px-3 rounded-md text-xs hidden">Del</button>
+                     </div>
+
+                    <div id="recording-controls" class="pt-4 border-t border-slate-700 hidden">
+                        <button id="recordBtn" class="w-full bg-rose-600 hover:bg-rose-500 text-white py-2 rounded-md font-bold text-sm shadow-lg shadow-rose-900/20 flex justify-center items-center gap-2">
+                            <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div> Start Recording (WebM)
+                        </button>
+                        <p class="text-[10px] text-slate-500 text-center mt-2">Audio restarts automatically. Video downloads when song ends.</p>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
-    
-    <!-- Custom Alert/Toast Container (New) -->
-    <div id="customAlert" class="fixed bottom-4 right-4 p-4 rounded-lg shadow-xl text-sm z-50 transition-opacity duration-300 opacity-0 pointer-events-none" style="min-width: 250px;"></div>
+
+    <!-- Toast Notification -->
+    <div id="customAlert" class="fixed bottom-6 right-6 px-4 py-3 rounded-lg shadow-2xl text-sm font-medium z-50 transform transition-all duration-500 translate-y-20 opacity-0 flex items-center gap-2">
+        <span id="alertIcon"></span>
+        <span id="alertMsg">Notification</span>
+    </div>
 
     <script>
     window.addEventListener('DOMContentLoaded', () => {
-        // --- Elemen DOM ---
-        const bgInput = document.getElementById('bgInput');
-        const audioInput = document.getElementById('audioInput');
-        const djLogoInput = document.getElementById('djLogoInput');
-        const previewBtn = document.getElementById('previewBtn');
-        const recordBtn = document.getElementById('recordBtn');
-        const recordingControls = document.getElementById('recording-controls');
-        const spectrumType = document.getElementById('spectrumType');
-        const particleType = document.getElementById('particleType');
-        const spectrumColor1 = document.getElementById('spectrumColor1');
-        const spectrumColor2 = document.getElementById('spectrumColor2');
-        const status = document.getElementById('status');
-        const barControls = document.getElementById('barControls');
-        const spectrumNumBars = document.getElementById('spectrumNumBars');
-        const spectrumBarThickness = document.getElementById('spectrumBarThickness');
-        const spectrumWidth = document.getElementById('spectrumWidth');
-        const spectrumHeight = document.getElementById('spectrumHeight');
-        const spectrumPosX = document.getElementById('spectrumPosX');
-        const spectrumPosY = document.getElementById('spectrumPosY');
-        const particleControls = document.getElementById('particleControls');
-        const particleOpacity = document.getElementById('particleOpacity');
-        const particleShape = document.getElementById('particleShape');
-        const textLine1 = document.getElementById('textLine1');
-        const textLine2 = document.getElementById('textLine2');
-        const textColor = document.getElementById('textColor');
-        const textFontFamily = document.getElementById('textFontFamily');
-        const textFontSize = document.getElementById('textFontSize');
-        const textPosX = document.getElementById('textPosX');
-        const textPosY = document.getElementById('textPosY');
-        const bgPulseEffect = document.getElementById('bgPulseEffect');
-        const bloomEffect = document.getElementById('bloomEffect');
-        const bloomIntensityContainer = document.getElementById('bloomIntensityContainer');
-        const bloomIntensity = document.getElementById('bloomIntensity');
-        const textPositionPresets = document.getElementById('text-position-presets');
-        const savePresetBtn = document.getElementById('savePresetBtn');
-        const presetName = document.getElementById('presetName');
-        const loadPresetSelect = document.getElementById('loadPresetSelect');
-        const deletePresetBtn = document.getElementById('deletePresetBtn'); // New element
-        const customAlert = document.getElementById('customAlert'); // New element
+        
+        // --- DOM Elements ---
+        const elements = {
+            bgInput: document.getElementById('bgInput'),
+            audioInput: document.getElementById('audioInput'),
+            djLogoInput: document.getElementById('djLogoInput'),
+            previewBtn: document.getElementById('previewBtn'),
+            recordBtn: document.getElementById('recordBtn'),
+            recordingControls: document.getElementById('recording-controls'),
+            spectrumType: document.getElementById('spectrumType'),
+            particleType: document.getElementById('particleType'),
+            spectrumColor1: document.getElementById('spectrumColor1'),
+            spectrumColor2: document.getElementById('spectrumColor2'),
+            barControls: document.getElementById('barControls'),
+            numBars: document.getElementById('spectrumNumBars'),
+            barThickness: document.getElementById('spectrumBarThickness'),
+            specWidth: document.getElementById('spectrumWidth'),
+            specHeight: document.getElementById('spectrumHeight'),
+            specPosX: document.getElementById('spectrumPosX'),
+            specPosY: document.getElementById('spectrumPosY'),
+            particleControls: document.getElementById('particleControls'),
+            particleOpacity: document.getElementById('particleOpacity'),
+            particleShape: document.getElementById('particleShape'),
+            textLine1: document.getElementById('textLine1'),
+            textLine2: document.getElementById('textLine2'),
+            fontFamily: document.getElementById('textFontFamily'),
+            fontSize: document.getElementById('textFontSize'),
+            textPosX: document.getElementById('textPosX'),
+            textPosY: document.getElementById('textPosY'),
+            bgPulse: document.getElementById('bgPulseEffect'),
+            bloom: document.getElementById('bloomEffect'),
+            bloomContainer: document.getElementById('bloomIntensityContainer'),
+            bloomInt: document.getElementById('bloomIntensity'),
+            posPresets: document.getElementById('text-position-presets'),
+            savePreset: document.getElementById('savePresetBtn'),
+            presetName: document.getElementById('presetName'),
+            loadPreset: document.getElementById('loadPresetSelect'),
+            delPreset: document.getElementById('deletePresetBtn'),
+            canvas: document.getElementById('visualizerCanvas'),
+            audio: document.getElementById('audioElement'),
+            video: document.getElementById('videoElement'),
+            alert: document.getElementById('customAlert'),
+            overlayStatus: document.getElementById('overlayStatus')
+        };
 
-        const canvas = document.getElementById('visualizerCanvas');
-        const previewPanel = document.getElementById('previewPanel');
-        const ctx = canvas.getContext('2d');
-        const audioElement = document.getElementById('audioElement');
-        const videoElement = document.getElementById('videoElement');
+        const ctx = elements.canvas.getContext('2d', { alpha: false }); // Optimize for no transparency on main canvas
+        
+        // --- App State ---
+        let state = {
+            audioCtx: null,
+            analyser: null,
+            sourceNode: null,
+            videoNode: null,
+            dataArray: null,
+            bufferLength: 0,
+            isPlaying: false,
+            frameId: null,
+            mediaRecorder: null,
+            chunks: [],
+            useVideoAudio: false,
+            bgImage: null,
+            djLogo: null,
+            playlist: [],
+            trackIndex: 0,
+            rotation: 0,
+            particles: [],
+            ballHeights: [],
+            textAlign: 'center',
+            textBaseline: 'bottom',
+            targetRatio: 16/9
+        };
 
-        // --- State Aplikasi ---
-        let audioContext, analyser, audioSource, videoSource;
-        let dataArray, bufferLength;
-        let isPlaying = false;
-        let animationFrameId;
-        let mediaRecorder;
-        let recordedChunks = [];
-        let useVideoAudio = false;
-        let backgroundImage = null;
-        let djLogoImage = null;
-        let playlist = [];
-        let currentTrackIndex = 0;
-        let rotationAngle = 0; 
-        let particlesArray = [];
-        let ballHeights = [];
-        let currentTextAlign = 'center';
-        let currentTextBaseline = 'bottom';
-        const TARGET_ASPECT_RATIO = 1280 / 720; // 16:9 HD
-
-        // --- Utility Functions ---
-
-        // Custom alert function (replaces window.alert())
-        const showCustomAlert = (message, isError = false) => {
-            customAlert.textContent = message;
-            customAlert.classList.remove('bg-green-500', 'bg-red-500', 'text-white', 'opacity-0');
-            customAlert.classList.add(isError ? 'bg-red-500' : 'bg-green-500', 'text-white', 'opacity-100');
+        // --- Utilities ---
+        const showAlert = (msg, type = 'success') => {
+            const bg = type === 'error' ? 'bg-rose-600' : 'bg-emerald-600';
+            elements.alert.className = `fixed bottom-6 right-6 px-4 py-3 rounded-lg shadow-2xl text-sm font-medium z-50 text-white flex items-center gap-2 transform transition-all duration-300 ease-out translate-y-0 opacity-100 ${bg}`;
+            elements.alert.querySelector('#alertMsg').textContent = msg;
             setTimeout(() => {
-                customAlert.classList.remove('opacity-100');
-                customAlert.classList.add('opacity-0');
+                elements.alert.classList.add('translate-y-20', 'opacity-0');
             }, 3000);
         };
 
-        // Handles canvas responsiveness
         const resizeCanvas = () => {
-            const containerWidth = previewPanel.clientWidth;
-            const containerHeight = previewPanel.clientHeight;
-            
-            let newWidth, newHeight;
+            // Internal resolution
+            elements.canvas.width = 1920; 
+            elements.canvas.height = 1080;
+            // CSS handles the display size, maintain aspect ratio via internal draw
+            if(!state.isPlaying) drawStaticScene();
+        };
 
-            // Calculate size based on container while maintaining 16:9 ratio
-            if (containerWidth / containerHeight > TARGET_ASPECT_RATIO) {
-                // Container is wider, height is the limiting factor
-                newHeight = containerHeight;
-                newWidth = newHeight * TARGET_ASPECT_RATIO;
+        // --- Audio Engine ---
+        const initAudio = () => {
+            if (!state.audioCtx) {
+                state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                state.analyser = state.audioCtx.createAnalyser();
+                state.analyser.fftSize = 2048;
+                state.bufferLength = state.analyser.frequencyBinCount;
+                state.dataArray = new Uint8Array(state.bufferLength);
+                
+                // Create nodes
+                state.sourceNode = state.audioCtx.createMediaElementSource(elements.audio);
+                state.videoNode = state.audioCtx.createMediaElementSource(elements.video);
+                
+                // Connect analyser to speakers by default
+                state.analyser.connect(state.audioCtx.destination);
+            }
+            if (state.audioCtx.state === 'suspended') {
+                state.audioCtx.resume();
+            }
+        };
+
+        const connectSource = (isVideo) => {
+            try {
+                if (state.sourceNode) state.sourceNode.disconnect();
+                if (state.videoNode) state.videoNode.disconnect();
+            } catch(e) { /* Ignore disconnect errors if not connected */ }
+
+            if (isVideo) {
+                state.videoNode.connect(state.analyser);
             } else {
-                // Container is taller or aspect ratio matches, width is the limiting factor
-                newWidth = containerWidth;
-                newHeight = newWidth / TARGET_ASPECT_RATIO;
+                state.sourceNode.connect(state.analyser);
+            }
+        };
+
+        // --- Visualizer Core ---
+        const render = () => {
+            if (!state.isPlaying) return;
+            state.frameId = requestAnimationFrame(render);
+            
+            state.analyser.getByteFrequencyData(state.dataArray);
+            state.rotation += 0.005;
+
+            const w = elements.canvas.width;
+            const h = elements.canvas.height;
+
+            // Clear
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, w, h);
+
+            // Draw Background
+            drawBackground(w, h);
+
+            // Draw Visuals
+            ctx.save();
+            if(elements.bloom.checked) {
+                ctx.shadowBlur = parseInt(elements.bloomInt.value);
+                ctx.shadowColor = elements.spectrumColor1.value;
             }
             
-            // Set internal drawing size and display size
-            canvas.width = 1280;
-            canvas.height = 720;
-            canvas.style.width = `${newWidth}px`;
-            canvas.style.height = `${newHeight}px`;
+            drawSpectrum(w, h);
+            ctx.restore();
 
-            // Redraw static elements immediately
-            drawBackground();
-            drawTextOverlay();
+            // Draw Particles
+            ctx.save();
+            if(elements.bloom.checked) {
+                 ctx.shadowBlur = parseInt(elements.bloomInt.value) / 2;
+                 ctx.shadowColor = '#fff';
+            }
+            drawParticles(w, h);
+            ctx.restore();
+
+            // Draw Text
+            drawText(w, h);
         };
 
-        window.addEventListener('resize', resizeCanvas);
-
-
-        // --- Inisialisasi ---
-        const initAudioContext = () => {
-            if (audioContext) return;
-            // Safari fix: initialize AudioContext on user interaction
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            analyser = audioContext.createAnalyser();
-            analyser.fftSize = 2048;
-            bufferLength = analyser.frequencyBinCount;
-            dataArray = new Uint8Array(bufferLength);
-            
-            // Create source nodes only once
-            audioSource = audioContext.createMediaElementSource(audioElement);
-            videoSource = audioContext.createMediaElementSource(videoElement);
-            
-            analyser.connect(audioContext.destination);
+        const drawStaticScene = () => {
+            const w = elements.canvas.width;
+            const h = elements.canvas.height;
+            drawBackground(w, h);
+            drawText(w, h);
         };
 
-        const updateUI = () => {
-            const hasBackground = bgInput.files.length > 0 || backgroundImage || videoElement.src;
-            const hasAudio = playlist.length > 0 || useVideoAudio;
-            const canPreview = hasBackground && hasAudio;
+        const drawBackground = (w, h) => {
+            ctx.save();
+            // Pulse Effect (Increased strength as requested)
+            if (elements.bgPulse.checked && state.isPlaying && state.dataArray) {
+                const bass = (state.dataArray[1] + state.dataArray[2] + state.dataArray[3]) / 3;
+                const scale = 1 + (bass / 255) * 0.06; // Increased from 0.02 to 0.06
+                ctx.translate(w / 2, h / 2);
+                ctx.scale(scale, scale);
+                ctx.translate(-w / 2, -h / 2);
+            }
+
+            if (state.useVideoAudio && elements.video.readyState >= 2) {
+                ctx.drawImage(elements.video, 0, 0, w, h);
+            } else if (state.bgImage) {
+                // Cover fit for image
+                const scale = Math.max(w / state.bgImage.width, h / state.bgImage.height);
+                const x = (w / 2) - (state.bgImage.width / 2) * scale;
+                const y = (h / 2) - (state.bgImage.height / 2) * scale;
+                ctx.drawImage(state.bgImage, x, y, state.bgImage.width * scale, state.bgImage.height * scale);
+            } else {
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(0,0,w,h);
+            }
             
-            // Update Preview Button state
-            previewBtn.disabled = !canPreview;
-            previewBtn.classList.toggle('btn-disabled', !canPreview);
-
-            // Update Delete Preset Button visibility
-            deletePresetBtn.style.display = loadPresetSelect.value ? 'block' : 'none';
-
-            // Show bar controls only for bar-based visualizers
-            const barBasedTypes = ['bars', 'bouncing-bars', 'circle-bars', 'ring-spectrum']; 
-            // Note: ncs-lines and wave use frequency data, but are line-based so they don't need barThickness/numBars controls.
-            barControls.style.display = barBasedTypes.includes(spectrumType.value) ? 'grid' : 'none';
+            // Darken overlay for better visibility
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.fillRect(0,0,w,h);
+            ctx.restore();
         };
-        
-        // --- Event Listeners ---
-        bgInput.addEventListener('change', (e) => {
-            const file = e.target.files[0]; if (!file) return;
-            const url = URL.createObjectURL(file);
-            if (file.type.startsWith('image/')) {
-                // Reset video, set image background
-                videoElement.src = ''; backgroundImage = new Image(); backgroundImage.src = url;
-                backgroundImage.onload = () => drawBackground(); useVideoAudio = false; audioInput.disabled = false;
-            } else if (file.type.startsWith('video/')) {
-                // Set video background
-                backgroundImage = null; videoElement.src = url;
-                videoElement.onloadedmetadata = () => {
-                    // Check if video has an audio track
-                    const hasAudio = videoElement.mozHasAudio || Boolean(videoElement.webkitAudioDecodedByteCount) || Boolean(videoElement.audioTracks?.length > 0);
-                    if(hasAudio) {
-                        initAudioContext(); audioInput.disabled = true;
-                        try { 
-                            // Menghapus console.error di sini. Error tidak kritis karena terjadi saat mencoba memutuskan koneksi yang mungkin belum terhubung.
-                            audioSource.disconnect(analyser); 
-                        } catch(err) {} 
-                        videoSource.connect(analyser); useVideoAudio = true;
-                    } else {
-                        // If video has no audio, rely on external audio input
-                        useVideoAudio = false; audioInput.disabled = false;
+
+        const drawText = (w, h) => {
+            const l1 = elements.textLine1.value;
+            const l2 = elements.textLine2.value;
+            if(!l1 && !l2) return;
+
+            ctx.save();
+            if(elements.bloom.checked) {
+                ctx.shadowColor = '#fff';
+                ctx.shadowBlur = 10;
+            }
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `${elements.fontSize.value}px "${elements.fontFamily.value}"`;
+            ctx.textAlign = state.textAlign;
+            ctx.textBaseline = state.textBaseline;
+
+            const x = (elements.textPosX.value / 100) * w;
+            const y = (elements.textPosY.value / 100) * h;
+            const lh = parseInt(elements.fontSize.value) * 1.2;
+
+            if(l1) ctx.fillText(l1, x, y - (l2 ? lh/2 : 0));
+            if(l2) {
+                ctx.font = `${parseInt(elements.fontSize.value) * 0.6}px "${elements.fontFamily.value}"`;
+                ctx.fillStyle = '#cbd5e1';
+                ctx.fillText(l2, x, y + (l1 ? lh/2 : 0));
+            }
+            ctx.restore();
+        };
+
+        // Helper to draw Center Logo
+        const drawCenterLogo = (rad) => {
+            if(state.djLogo) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(0, 0, rad, 0, Math.PI*2);
+                ctx.clip();
+                ctx.drawImage(state.djLogo, -rad, -rad, rad*2, rad*2);
+                ctx.restore();
+            }
+        };
+
+        // --- Visualizer Strategies ---
+        const drawSpectrum = (w, h) => {
+            const type = elements.spectrumType.value;
+            if(type === 'none') return;
+
+            const numBars = parseInt(elements.numBars.value);
+            const thickness = parseInt(elements.barThickness.value);
+            const scaleX = elements.specWidth.value / 100;
+            const scaleY = elements.specHeight.value / 100;
+            
+            // Center calculations
+            const cx = (elements.specPosX.value / 100) * w;
+            const cy = (elements.specPosY.value / 100) * h;
+
+            // Gradient
+            const grad = ctx.createLinearGradient(0, h, 0, 0);
+            grad.addColorStop(0, elements.spectrumColor1.value);
+            grad.addColorStop(1, elements.spectrumColor2.value);
+            ctx.fillStyle = grad;
+            ctx.strokeStyle = grad;
+
+            ctx.save();
+            ctx.translate(cx, cy);
+
+            switch(type) {
+                case 'bars': {
+                    const width = w * scaleX;
+                    ctx.translate(-width/2, (h * scaleY)/2); // Align bottom
+                    const gap = width / numBars;
+                    for(let i=0; i<numBars; i++) {
+                        const idx = Math.floor(i * (state.bufferLength/numBars));
+                        const val = (state.dataArray[idx]/255) * h * scaleY;
+                        ctx.fillRect(i * gap, 0, thickness, -val);
                     }
+                    break;
+                }
+                case 'digital-eq': {
+                    const width = w * scaleX;
+                    const maxHeight = h * scaleY;
+                    ctx.translate(-width/2, maxHeight/2);
+                    const gap = width / numBars;
+                    
+                    for(let i=0; i<numBars; i++) {
+                         const idx = Math.floor(i * (state.bufferLength/numBars));
+                         const val = (state.dataArray[idx]/255) * maxHeight;
+                         
+                         // Draw blocks instead of continuous rect
+                         const blockHeight = thickness * 1.5; // Square-ish blocks
+                         const numBlocks = Math.floor(val / (blockHeight + 2)); // +2 for gap
+                         
+                         for(let j=0; j<numBlocks; j++) {
+                             // Determine color based on height (Green -> Yellow -> Red simulation using opacity/gradient)
+                             ctx.globalAlpha = 0.5 + (j/numBlocks)*0.5;
+                             ctx.fillRect(i*gap, -(j*(blockHeight+2)), thickness, -blockHeight);
+                         }
+                         ctx.globalAlpha = 1.0;
+                    }
+                    break;
+                }
+                case 'classic-circle': {
+                    const radius = Math.min(w, h) * 0.25 * scaleY;
+                    const maxBarH = (Math.min(w, h) * 0.25) * scaleY;
+                    
+                    // Draw inner circle line base
+                    ctx.beginPath();
+                    ctx.arc(0, 0, radius - 4, 0, Math.PI*2);
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    
+                    // Draw Logo if exists
+                    drawCenterLogo(radius - 6);
+
+                    for(let i=0; i<numBars; i++) {
+                        const idx = Math.floor(i * (state.bufferLength/numBars));
+                        const val = (state.dataArray[idx] / 255) * maxBarH;
+                        const ang = (i / numBars) * Math.PI * 2;
+                        
+                        ctx.save();
+                        ctx.rotate(ang);
+                        ctx.fillRect(radius, -thickness/2, val + 2, thickness); 
+                        ctx.restore();
+                    }
+                    break;
+                }
+                case 'eclipse': {
+                    const rad = Math.min(w,h) * 0.2 * scaleY;
+                    const maxExt = rad * 1.5;
+                    const bass = state.dataArray[5]/255;
+                    const pulseRad = rad * (1 + bass*0.1);
+                    
+                    // Draw spectrum behind
+                    for(let i=0; i<numBars; i++) {
+                        const idx = Math.floor(i*(state.bufferLength/numBars));
+                        const val = (state.dataArray[idx]/255) * maxExt;
+                        const ang = (i/numBars) * Math.PI * 2 + state.rotation;
+                        
+                        ctx.save();
+                        ctx.rotate(ang);
+                        ctx.fillRect(rad*0.8, -thickness/2, val + rad*0.5, thickness); // Start slightly inside
+                        ctx.restore();
+                    }
+                    
+                    // Draw Eclipse Circle
+                    ctx.beginPath();
+                    ctx.arc(0, 0, pulseRad, 0, Math.PI*2);
+                    ctx.fillStyle = '#000';
+                    ctx.fill();
+                    
+                    // Glow ring around eclipse
+                    ctx.beginPath();
+                    ctx.arc(0, 0, pulseRad, 0, Math.PI*2);
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = elements.spectrumColor1.value;
+                    ctx.shadowColor = elements.spectrumColor1.value;
+                    ctx.shadowBlur = 20 * bass;
+                    ctx.stroke();
+                    ctx.shadowBlur = 0; // reset
+                    
+                    drawCenterLogo(pulseRad * 0.9);
+                    break;
+                }
+                case 'spiral-wave': {
+                     const maxRad = Math.min(w,h) * 0.45 * scaleY;
+                     const coils = 4;
+                     const points = numBars * 2; // More resolution
+                     
+                     ctx.beginPath();
+                     ctx.lineWidth = thickness/2;
+                     ctx.lineCap = 'round';
+                     
+                     for(let i=0; i<points; i++) {
+                         const idx = Math.floor(i * (state.bufferLength/points));
+                         const val = (state.dataArray[idx]/255) * 50;
+                         
+                         const angle = (i / points) * Math.PI * 2 * coils + state.rotation;
+                         const radius = (i / points) * maxRad + val;
+                         
+                         const x = Math.cos(angle) * radius;
+                         const y = Math.sin(angle) * radius;
+                         
+                         i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+                     }
+                     ctx.stroke();
+                    break;
+                }
+                case 'hexagon': {
+                     const rad = Math.min(w,h) * 0.25 * scaleY;
+                     const maxExt = rad * 0.6;
+                     const sides = 6;
+                     
+                     // Pulse Center
+                     const bass = state.dataArray[4]/255;
+                     const centerRad = rad * (0.8 + bass * 0.2);
+                     
+                     ctx.beginPath();
+                     for(let i=0; i<=sides; i++) {
+                         const ang = i * 2 * Math.PI / sides + state.rotation;
+                         const x = centerRad * Math.cos(ang);
+                         const y = centerRad * Math.sin(ang);
+                         i===0? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+                     }
+                     ctx.closePath();
+                     ctx.lineWidth = 5;
+                     ctx.stroke();
+                     
+                     drawCenterLogo(centerRad * 0.9);
+                     
+                     // Outer Bars (Hex)
+                     for(let i=0; i<numBars; i++) {
+                         const idx = Math.floor(i*(state.bufferLength/numBars));
+                         const val = (state.dataArray[idx]/255) * maxExt;
+                         const ang = (i/numBars) * Math.PI * 2 + state.rotation;
+                         
+                         const startX = (rad+10) * Math.cos(ang);
+                         const startY = (rad+10) * Math.sin(ang);
+                         const endX = (rad+10+val) * Math.cos(ang);
+                         const endY = (rad+10+val) * Math.sin(ang);
+                         
+                         ctx.beginPath();
+                         ctx.moveTo(startX, startY);
+                         ctx.lineTo(endX, endY);
+                         ctx.lineWidth = thickness/2;
+                         ctx.stroke();
+                     }
+                    break;
+                }
+                 case 'seismic': {
+                    const width = w * scaleX;
+                    const height = h * scaleY;
+                    const slice = width / numBars;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(-width/2, 0);
+                    
+                    // Top Wave
+                    for(let i=0; i<numBars; i++) {
+                        const idx = Math.floor(i * (state.bufferLength/numBars));
+                        const val = (state.dataArray[idx]/255) * (height/2);
+                        const x = (i * slice) - width/2;
+                        ctx.lineTo(x, -val);
+                    }
+                    ctx.lineTo(width/2, 0);
+                    
+                    // Bottom Wave (Mirror)
+                    for(let i=numBars-1; i>=0; i--) {
+                        const idx = Math.floor(i * (state.bufferLength/numBars));
+                        const val = (state.dataArray[idx]/255) * (height/2);
+                        const x = (i * slice) - width/2;
+                        ctx.lineTo(x, val);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                    break;
+                }
+                case 'bouncing-bars': {
+                    const width = w * scaleX;
+                    ctx.translate(-width/2, (h * scaleY)/2);
+                    const gap = width / numBars;
+                    if(state.ballHeights.length !== numBars) state.ballHeights = new Array(numBars).fill(0);
+                    
+                    for(let i=0; i<numBars; i++) {
+                        const idx = Math.floor(i * (state.bufferLength/numBars));
+                        const val = (state.dataArray[idx]/255) * h * scaleY;
+                        ctx.fillRect(i * gap, 0, thickness, -val);
+                        
+                        // Ball physics
+                        if(val > state.ballHeights[i]) state.ballHeights[i] = val;
+                        else state.ballHeights[i] = Math.max(0, state.ballHeights[i] - 2);
+                        
+                        ctx.beginPath();
+                        ctx.arc(i*gap + thickness/2, -state.ballHeights[i] - 10, thickness/2, 0, Math.PI*2);
+                        ctx.fill();
+                    }
+                    break;
+                }
+                case 'circle-bars': {
+                    const rad = Math.min(w,h) * 0.25 * scaleY;
+                    drawCenterLogo(rad - 10);
+                    for(let i=0; i<numBars; i++) {
+                        const idx = Math.floor(i*(state.bufferLength/numBars));
+                        const val = (state.dataArray[idx]/255) * 100;
+                        const ang = (i/numBars) * Math.PI * 2;
+                        
+                        ctx.save();
+                        ctx.rotate(ang);
+                        ctx.fillRect(rad, -thickness/2, val, thickness);
+                        ctx.restore();
+                    }
+                    break;
+                }
+                case 'dj-disc': {
+                    const rad = Math.min(w,h) * 0.3 * scaleY;
+                    ctx.rotate(state.rotation);
+                    
+                    // Disc Body
+                    ctx.beginPath(); ctx.arc(0,0,rad,0,Math.PI*2); ctx.fillStyle='#111'; ctx.fill();
+                    ctx.strokeStyle='#333'; ctx.lineWidth=2; 
+                    for(let r=rad*0.3; r<rad*0.95; r+=5) { ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.stroke(); }
+                    
+                    // Beat Pulse Label
+                    const bass = state.dataArray[10]/255;
+                    const labelRad = rad*0.35 + (bass * 20);
+                    
+                    // Use drawCenterLogo logic manually here because of pulse effect
+                    ctx.save();
+                    ctx.beginPath(); ctx.arc(0,0,labelRad,0,Math.PI*2); ctx.clip();
+                    if(state.djLogo) ctx.drawImage(state.djLogo, -labelRad, -labelRad, labelRad*2, labelRad*2);
+                    else { ctx.fillStyle=elements.spectrumColor1.value; ctx.fill(); }
+                    ctx.restore();
+                    break;
+                }
+                case 'ring-spectrum': {
+                    const rad = Math.min(w,h) * 0.25 * scaleY;
+                    const maxExt = rad * 0.5;
+                    
+                    drawCenterLogo(rad - 10);
+                    
+                    ctx.beginPath(); ctx.arc(0,0, rad, 0, Math.PI*2); 
+                    ctx.strokeStyle = elements.spectrumColor2.value; ctx.lineWidth=4; ctx.stroke();
+                    
+                    const angleStep = (Math.PI*2)/numBars;
+                    ctx.lineCap = 'round';
+                    ctx.lineWidth = thickness;
+                    
+                    for(let i=0; i<numBars; i++) {
+                         const idx = Math.floor(i * (state.bufferLength/numBars));
+                         const len = (state.dataArray[idx]/255) * maxExt;
+                         const ang = i * angleStep;
+                         ctx.beginPath();
+                         ctx.arc(0,0, rad + len, ang, ang + angleStep*0.5);
+                         ctx.stroke();
+                    }
+                    break;
+                }
+                case 'ncs-lines': {
+                    ctx.lineWidth = 4;
+                    ctx.lineCap = 'round';
+                    const width = w * scaleX;
+                    const maxAmp = (h * scaleY) * 0.4;
+                    const subset = state.dataArray.slice(0, 100); // Focus low end
+                    const slice = width / subset.length;
+                    
+                    ctx.beginPath();
+                    for(let i=0; i<subset.length; i++) {
+                        const x = (i * slice) - width/2;
+                        const y = (subset[i]/255) * maxAmp;
+                        i===0 ? ctx.moveTo(x, -y) : ctx.lineTo(x, -y);
+                    }
+                    ctx.stroke();
+                    
+                    // Mirror bottom
+                    ctx.beginPath();
+                    for(let i=0; i<subset.length; i++) {
+                         const x = (i * slice) - width/2;
+                         const y = (subset[i]/255) * maxAmp;
+                         i===0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                    
+                    // Center line
+                    ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+                    ctx.beginPath(); ctx.moveTo(-width/2, 0); ctx.lineTo(width/2, 0); ctx.stroke();
+                    break;
+                }
+                case 'wireframe-3d': {
+                    const rings = 8;
+                    const pts = 40;
+                    const baseRad = Math.min(w,h) * 0.3 * scaleY;
+                    
+                    for(let r=0; r<rings; r++) {
+                        const z = (r - rings/2) * 50;
+                        const scale = 1 / (1 + (z * 0.002));
+                        const ringRad = baseRad * scale;
+                        const rot = state.rotation * (rings-r) * 0.5;
+                        
+                        ctx.beginPath();
+                        ctx.globalAlpha = 0.3 + (0.7 * scale);
+                        ctx.lineWidth = 2 * scale;
+                        
+                        for(let i=0; i<=pts; i++) {
+                            const idx = Math.floor(i * (100/pts)); // Use first 100 bins
+                            const mag = (state.dataArray[idx]/255) * 30 * scale;
+                            const ang = (i/pts) * Math.PI * 2 + rot;
+                            
+                            const rx = Math.cos(ang) * (ringRad + mag);
+                            const ry = Math.sin(ang) * (ringRad + mag);
+                            i===0 ? ctx.moveTo(rx, ry) : ctx.lineTo(rx, ry);
+                        }
+                        ctx.closePath();
+                        ctx.stroke();
+                    }
+                    ctx.globalAlpha = 1;
+                    break;
+                }
+                 case 'frequency-mirror': {
+                    const width = w * scaleX;
+                    const halfW = width/2;
+                    const quarterBars = Math.floor(numBars/4);
+                    const step = halfW / quarterBars;
+                    const maxHeight = (h * scaleY) * 0.5;
+                    
+                    const drawQuad = (mx, my) => {
+                        ctx.save();
+                        ctx.scale(mx, my);
+                        ctx.fillStyle = mx === 1 ? elements.spectrumColor1.value : elements.spectrumColor2.value;
+                        for(let i=0; i<quarterBars; i++) {
+                            const idx = Math.floor(i * (128/quarterBars));
+                            const hVal = (state.dataArray[idx]/255) * maxHeight;
+                            ctx.fillRect(i*step, 0, thickness, -hVal);
+                        }
+                        ctx.restore();
+                    }
+                    
+                    drawQuad(1, 1);   // Bottom Right
+                    drawQuad(-1, 1);  // Bottom Left
+                    drawQuad(1, -1);  // Top Right
+                    drawQuad(-1, -1); // Top Left
+                    break;
+                }
+                case 'wave-mesh': {
+                    const rad = Math.min(w,h) * 0.3 * scaleY;
+                    const pts = 60;
+                    const subset = state.dataArray.slice(0, pts);
+                    
+                    ctx.beginPath();
+                    for(let i=0; i<pts; i++) {
+                        const mag = (subset[i]/255) * 50;
+                        const ang = (i/pts) * Math.PI * 2;
+                        const r = rad + mag + Math.sin(state.rotation*10 + i)*10;
+                        const x = Math.cos(ang) * r;
+                        const y = Math.sin(ang) * r;
+                        i===0? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+                        
+                        // Dots
+                        ctx.save();
+                        ctx.fillStyle = elements.spectrumColor2.value;
+                        ctx.beginPath(); ctx.arc(x,y, 3, 0, Math.PI*2); ctx.fill();
+                        ctx.restore();
+                    }
+                    ctx.closePath();
+                    ctx.globalAlpha=0.5; ctx.stroke(); ctx.globalAlpha=1;
+                    break;
+                }
+                case 'dual-lines': {
+                     const width = w * scaleX;
+                     const maxH = (h * scaleY) * 0.4;
+                     const slice = width / state.bufferLength;
+                     ctx.lineWidth=2;
+                     
+                     ctx.beginPath();
+                     for(let i=0; i<state.bufferLength; i++) {
+                         const y = -(state.dataArray[i]/255)*maxH;
+                         const x = (i*slice) - width/2;
+                         i===0? ctx.moveTo(x,0) : ctx.lineTo(x,y);
+                     }
+                     ctx.stroke();
+                     
+                     ctx.beginPath();
+                     for(let i=0; i<state.bufferLength; i++) {
+                         const y = (state.dataArray[i]/255)*maxH;
+                         const x = (i*slice) - width/2;
+                         i===0? ctx.moveTo(x,0) : ctx.lineTo(x,y);
+                     }
+                     ctx.stroke();
+                     break;
+                }
+                case 'wave': {
+                     const width = w * scaleX;
+                     ctx.lineWidth=3;
+                     const slice = width / state.bufferLength;
+                     ctx.translate(-width/2, 0);
+                     
+                     ctx.beginPath();
+                     for(let i=0; i<state.bufferLength; i++) {
+                         const v = state.dataArray[i] / 128.0;
+                         const y = (v * (h*scaleY)/4) - (h*scaleY)/4;
+                         const x = i * slice;
+                         i===0? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+                     }
+                     ctx.stroke();
+                     break;
+                }
+            }
+            ctx.restore();
+        };
+
+        // --- Particle System ---
+        const initParticles = (w, h) => {
+            state.particles = [];
+            const count = 50;
+            for(let i=0; i<count; i++) {
+                state.particles.push({
+                    x: Math.random() * w,
+                    y: Math.random() * h,
+                    size: Math.random() * 5 + 2,
+                    speed: Math.random() * 3 + 1,
+                    angle: Math.random() * Math.PI * 2,
+                    radius: Math.random() * Math.min(w,h) * 0.4
+                });
+            }
+        };
+
+        const drawParticles = (w, h) => {
+            const type = elements.particleType.value;
+            if(type === 'none') return;
+
+            const opacity = elements.particleOpacity.value / 100;
+            const avg = state.dataArray ? state.dataArray.reduce((a,b)=>a+b,0)/state.bufferLength : 0;
+            const energy = avg / 255;
+
+            // Init if empty
+            if(state.particles.length === 0) initParticles(w, h);
+
+            state.particles.forEach((p, i) => {
+                ctx.save();
+                // Make particles more visible (added 0.2 base opacity)
+                ctx.fillStyle = `rgba(255,255,255,${Math.min(1, opacity * (0.2 + energy * 1.5))})`;
+                
+                if(type === 'particle-rain') {
+                    p.y += p.speed + (energy * 10);
+                    if(p.y > h) { p.y = 0; p.x = Math.random() * w; }
+                    drawShape(p.x, p.y, p.size);
+                } 
+                else if (type === 'spinning-galaxy') {
+                    p.angle += 0.01 + (energy * 0.05);
+                    const r = p.radius + (state.dataArray[i%100]/255)*50;
+                    const x = (w/2) + Math.cos(p.angle) * r;
+                    const y = (h/2) + Math.sin(p.angle) * r;
+                    drawShape(x, y, p.size);
+                }
+                else { // Floating
+                    const idx = Math.floor(i * (state.bufferLength/state.particles.length));
+                    const mag = state.dataArray ? state.dataArray[idx]/255 : 0;
+                    // Pulse size with audio
+                    const pulsatedSize = p.size * (1 + mag);
+                    drawShape(p.x, p.y, pulsatedSize);
+                }
+                ctx.restore();
+            });
+        };
+
+        const drawShape = (x, y, s) => {
+            const shape = elements.particleShape.value;
+            ctx.beginPath();
+            if(shape === 'circle') ctx.arc(x,y,s,0,Math.PI*2);
+            else if(shape === 'square') ctx.rect(x-s, y-s, s*2, s*2);
+            else { ctx.moveTo(x, y-s); ctx.lineTo(x-s, y+s); ctx.lineTo(x+s, y+s); }
+            ctx.fill();
+        };
+
+
+        // --- Logic Integration ---
+        const updateUI = () => {
+            const hasMedia = (elements.bgInput.files.length || state.bgImage || elements.video.src) && 
+                             (elements.audioInput.files.length || state.useVideoAudio);
+            
+            elements.previewBtn.disabled = !hasMedia;
+            if(elements.previewBtn.disabled) elements.previewBtn.style.opacity = "0.5";
+            else elements.previewBtn.style.opacity = "1";
+
+            const isBar = ['bars','bouncing-bars','circle-bars','ring-spectrum','frequency-mirror', 'classic-circle', 'hexagon', 'seismic', 'digital-eq'].includes(elements.spectrumType.value);
+            elements.barControls.style.display = isBar ? 'grid' : 'none';
+
+            const isPart = elements.particleType.value !== 'none';
+            elements.particleControls.style.display = isPart ? 'grid' : 'none';
+            
+            // Update Delete Button Visibility
+            elements.delPreset.classList.toggle('hidden', !elements.loadPreset.value);
+        };
+
+        // Event Listeners
+        elements.bgInput.addEventListener('change', e => {
+            const file = e.target.files[0];
+            if(!file) return;
+            const url = URL.createObjectURL(file);
+            
+            if(file.type.startsWith('video/')) {
+                state.bgImage = null;
+                elements.video.src = url;
+                elements.video.classList.remove('hidden');
+                elements.video.onloadedmetadata = () => {
+                    // Check for audio track
+                    const hasAudio = elements.video.mozHasAudio || 
+                                   Boolean(elements.video.webkitAudioDecodedByteCount) || 
+                                   Boolean(elements.video.audioTracks && elements.video.audioTracks.length);
+                    
+                    state.useVideoAudio = hasAudio;
+                    elements.audioInput.disabled = hasAudio;
+                    if(hasAudio) showAlert("Video Audio Detected");
+                    updateUI();
+                }
+            } else {
+                elements.video.src = "";
+                elements.video.classList.add('hidden');
+                state.bgImage = new Image();
+                state.bgImage.src = url;
+                state.bgImage.onload = () => {
+                    drawStaticScene();
+                    state.useVideoAudio = false;
+                    elements.audioInput.disabled = false;
                     updateUI();
                 };
-                videoElement.oncanplay = () => drawBackground();
-            }
-            updateUI();
-        });
-
-        audioInput.addEventListener('change', (e) => {
-            if (useVideoAudio) return;
-            playlist = Array.from(e.target.files);
-            if (playlist.length === 0) { updateUI(); return; }
-            currentTrackIndex = 0;
-            audioElement.src = URL.createObjectURL(playlist[currentTrackIndex]);
-            initAudioContext();
-            try { 
-                // Menghapus console.error di sini. Error tidak kritis karena terjadi saat mencoba memutuskan koneksi yang mungkin belum terhubung.
-                videoSource.disconnect(analyser); 
-            } catch(err) {} 
-            audioSource.connect(analyser); useVideoAudio = false;
-            updateUI();
-        });
-
-        djLogoInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) { djLogoImage = null; return; }
-            djLogoImage = new Image();
-            djLogoImage.src = URL.createObjectURL(file);
-        });
-
-        audioElement.addEventListener('ended', () => {
-            currentTrackIndex++;
-            if (currentTrackIndex < playlist.length) playTrack(currentTrackIndex);
-            else {
-                if (mediaRecorder?.state === 'recording') stopRecording();
-                else stopPlayback();
             }
         });
 
-        previewBtn.addEventListener('click', () => { if (isPlaying) stopPlayback(); else startPlayback(); });
-        recordBtn.addEventListener('click', () => { if (mediaRecorder?.state === 'recording') stopRecording(); else startRecording(); });
-
-        // Listeners for visualizer controls
-        spectrumType.addEventListener('change', () => {
-            const type = spectrumType.value;
-            const barBasedTypes = ['bars', 'bouncing-bars', 'circle-bars', 'ring-spectrum'];
-            barControls.style.display = barBasedTypes.includes(type) ? 'grid' : 'none';
-            if (type === 'bouncing-bars') ballHeights = new Array(parseInt(spectrumNumBars.value)).fill(0);
-            updateUI(); // Calls updateUI to ensure bar controls are updated
-        });
-        
-        particleType.addEventListener('change', (e) => {
-            const type = e.target.value;
-            particleControls.style.display = type !== 'none' ? 'block' : 'none';
-            if(type !== 'none') initParticles(type, canvas.width, canvas.height);
-        });
-
-        bloomEffect.addEventListener('change', (e) => {
-            bloomIntensityContainer.style.display = e.target.checked ? 'block' : 'none';
-        });
-
-        textPositionPresets.addEventListener('click', (e) => {
-            if (e.target.tagName !== 'BUTTON') return;
-            const pos = e.target.dataset.pos;
-            const positions = {
-                'top-left': { x: 2, y: 5, align: 'left', base: 'top' },
-                'top-center': { x: 50, y: 5, align: 'center', base: 'top' },
-                'top-right': { x: 98, y: 5, align: 'right', base: 'top' },
-                'middle-left': { x: 2, y: 50, align: 'left', base: 'middle' },
-                'middle-center': { x: 50, y: 50, align: 'center', base: 'middle' },
-                'middle-right': { x: 98, y: 50, align: 'right', base: 'middle' },
-                'bottom-left': { x: 2, y: 95, align: 'left', base: 'bottom' },
-                'bottom-center': { x: 50, y: 95, align: 'center', base: 'bottom' },
-                'bottom-right': { x: 98, y: 95, align: 'right', base: 'bottom' },
-            };
-            const newPos = positions[pos];
-            if (newPos) {
-                textPosX.value = newPos.x;
-                textPosY.value = newPos.y;
-                currentTextAlign = newPos.align;
-                currentTextBaseline = newPos.base;
-                // Visually update sliders
-                textPosX.dispatchEvent(new Event('input', { bubbles: true }));
-                textPosY.dispatchEvent(new Event('input', { bubbles: true }));
+        elements.audioInput.addEventListener('change', e => {
+            if(state.useVideoAudio) return;
+            state.playlist = Array.from(e.target.files);
+            if(state.playlist.length) {
+                state.trackIndex = 0;
+                elements.audio.src = URL.createObjectURL(state.playlist[0]);
+                updateUI();
+                showAlert(`Loaded: ${state.playlist[0].name}`);
             }
         });
 
-        // --- Logika Preset ---
-        const populatePresets = () => {
-            loadPresetSelect.innerHTML = '<option value="">Muat Preset...</option>';
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key.startsWith('visualizerPreset_')) {
-                    const name = key.replace('visualizerPreset_', '');
-                    const option = document.createElement('option');
-                    option.value = name;
-                    option.textContent = name;
-                    loadPresetSelect.appendChild(option);
-                }
+        elements.djLogoInput.addEventListener('change', e => {
+            const f = e.target.files[0];
+            if(f) {
+                state.djLogo = new Image();
+                state.djLogo.src = URL.createObjectURL(f);
+                state.djLogo.onload = () => showAlert("Logo Loaded");
             }
-            updateUI();
-        };
-
-        savePresetBtn.addEventListener('click', () => {
-            const name = presetName.value.trim();
-            if (!name) { showCustomAlert('Silakan masukkan nama preset.', true); return; }
-            
-            const settings = {};
-            document.querySelectorAll('.control-input').forEach(el => {
-                settings[el.id] = el.type === 'checkbox' ? el.checked : el.value;
-            });
-            // Save current text alignment too
-            settings.currentTextAlign = currentTextAlign;
-            settings.currentTextBaseline = currentTextBaseline;
-            
-            localStorage.setItem(`visualizerPreset_${name}`, JSON.stringify(settings));
-            populatePresets();
-            presetName.value = '';
-            showCustomAlert(`Preset "${name}" berhasil disimpan!`);
         });
 
-        loadPresetSelect.addEventListener('change', (e) => {
-            const name = e.target.value;
-            if (!name) { 
-                updateUI(); // Hide delete button
-                return; 
+        elements.previewBtn.addEventListener('click', () => {
+            if(state.isPlaying) {
+                stopPlayback();
+                elements.previewBtn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Play`;
+                elements.recordingControls.classList.add('hidden');
+            } else {
+                startPlayback();
+                elements.previewBtn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Stop`;
+                elements.recordingControls.classList.remove('hidden');
             }
-
-            const settings = JSON.parse(localStorage.getItem(`visualizerPreset_${name}`));
-            if (!settings) { updateUI(); return; }
-
-            for (const id in settings) {
-                const el = document.getElementById(id);
-                if (el) {
-                    if (el.type === 'checkbox') el.checked = settings[id];
-                    else el.value = settings[id];
-                    // Trigger change to update UI logic (like barControls visibility)
-                    el.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-            }
-            // Manually set text alignment properties
-            currentTextAlign = settings.currentTextAlign || 'center';
-            currentTextBaseline = settings.currentTextBaseline || 'bottom';
-
-            updateUI();
-            showCustomAlert(`Preset "${name}" dimuat.`);
         });
-
-        deletePresetBtn.addEventListener('click', () => {
-            const name = loadPresetSelect.value;
-            if (!name) return;
-            
-            // Replaced window.confirm with internal logic to avoid blocking dialog
-            localStorage.removeItem(`visualizerPreset_${name}`);
-            populatePresets();
-            loadPresetSelect.value = '';
-            updateUI();
-            showCustomAlert(`Preset "${name}" berhasil dihapus.`);
-        });
-
-
-        // --- Logika Playback & Visualisasi ---
-        const playTrack = (index) => {
-            if (useVideoAudio || index >= playlist.length) return;
-            audioElement.src = URL.createObjectURL(playlist[index]);
-            audioElement.play();
-        };
 
         const startPlayback = () => {
-            // First time play attempt must call initAudioContext() for user interaction
-            initAudioContext(); 
-
-            if (audioContext?.state === 'suspended') audioContext.resume();
+            initAudio();
+            state.isPlaying = true;
             
-            // Connect the appropriate source to the analyser before playing
-            if (useVideoAudio) {
-                videoElement.play();
-                try { audioSource.disconnect(analyser); videoSource.connect(analyser); } catch(e) {}
+            if(state.useVideoAudio) {
+                connectSource(true);
+                elements.video.play();
+            } else {
+                connectSource(false);
+                elements.audio.play();
+                if(elements.video.src) elements.video.play(); // Play mute bg video
             }
-            else {
-                currentTrackIndex = 0;
-                playTrack(currentTrackIndex);
-                if (videoElement.src) videoElement.play();
-                try { videoSource.disconnect(analyser); audioSource.connect(analyser); } catch(e) {}
-            }
-
-            isPlaying = true;
-            previewBtn.textContent = 'Hentikan Pratinjau';
-            recordingControls.classList.remove('hidden');
-            renderVisualizer();
+            render();
         };
 
         const stopPlayback = () => {
-            const mediaToStop = useVideoAudio ? videoElement : audioElement;
-            mediaToStop.pause(); mediaToStop.currentTime = 0;
-            if (videoElement.src && !useVideoAudio) { videoElement.pause(); videoElement.currentTime = 0; }
-            currentTrackIndex = 0;
-            if (playlist.length > 0) audioElement.src = URL.createObjectURL(playlist[0]);
-            isPlaying = false;
-            previewBtn.textContent = 'Mulai Pratinjau';
-            recordingControls.classList.add('hidden');
-            cancelAnimationFrame(animationFrameId);
-            drawBackground();
-            drawTextOverlay();
+            state.isPlaying = false;
+            cancelAnimationFrame(state.frameId);
+            elements.audio.pause();
+            elements.video.pause();
+            elements.audio.currentTime = 0;
+            elements.video.currentTime = 0;
+            drawStaticScene();
         };
         
-        const drawBackground = () => {
-            ctx.save();
-            const mediaElement = backgroundImage || (videoElement.src ? videoElement : null);
-            if (bgPulseEffect.checked && isPlaying && dataArray) {
-                const bass = (dataArray[1] + dataArray[2] + dataArray[3]) / 3;
-                const scale = 1 + (bass / 255) * 0.05;
-                ctx.translate(canvas.width / 2, canvas.height / 2);
-                ctx.scale(scale, scale);
-                ctx.translate(-canvas.width / 2, -canvas.height / 2);
-            }
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (mediaElement && (mediaElement.complete !== false || videoElement.readyState >= 2)) {
-                // Draw media element stretched to fill the 16:9 canvas size (1280x720)
-                ctx.drawImage(mediaElement, 0, 0, canvas.width, canvas.height);
+        // Audio end handling
+        elements.audio.onended = () => {
+            if(state.mediaRecorder && state.mediaRecorder.state === 'recording') {
+                 stopRecording();
             } else {
-                 ctx.fillStyle = '#000';
-                 ctx.fillRect(0,0, canvas.width, canvas.height);
-            }
-            ctx.restore();
-        }
-
-        const drawTextOverlay = () => {
-            const line1 = textLine1.value;
-            const line2 = textLine2.value;
-            if (!line1 && !line2) return;
-
-            ctx.save();
-            if (bloomEffect.checked) {
-                ctx.shadowColor = textColor.value;
-                ctx.shadowBlur = bloomIntensity.value;
-            }
-            ctx.fillStyle = textColor.value;
-            ctx.font = `${textFontSize.value}px "${textFontFamily.value}"`;
-            ctx.textAlign = currentTextAlign;
-            ctx.textBaseline = currentTextBaseline;
-
-            const x = (textPosX.value / 100) * canvas.width;
-            const y = (textPosY.value / 100) * canvas.height;
-            const lineHeight = parseInt(textFontSize.value) * 1.2;
-
-            if (line1 && line2) {
-                ctx.fillText(line1, x, y - lineHeight / 2);
-                ctx.fillText(line2, x, y + lineHeight / 2);
-            } else {
-                ctx.fillText(line1 || line2, x, y);
-            }
-            ctx.restore();
-        };
-
-        const renderVisualizer = () => {
-            animationFrameId = requestAnimationFrame(renderVisualizer);
-            if (!analyser) return;
-            analyser.getByteFrequencyData(dataArray);
-            rotationAngle += 0.005;
-
-            drawBackground();
-            
-            ctx.save();
-            if (bloomEffect.checked) {
-                ctx.shadowColor = spectrumColor1.value;
-                ctx.shadowBlur = bloomIntensity.value;
-            }
-            // Render Spectrum
-            const spectrumStyle = spectrumType.value;
-            if (spectrumStyle !== 'none') {
-                // Calculate spectrum bounding box relative to canvas size (1280x720)
-                const sWidth = (spectrumWidth.value / 100) * canvas.width;
-                const sHeight = (spectrumHeight.value / 100) * canvas.height;
-                const sX = (spectrumPosX.value / 100) * canvas.width - sWidth / 2; // Center based on PosX
-                const sY = (spectrumPosY.value / 100) * canvas.height - sHeight / 2; // Center based on PosY
-
-                ctx.save();
-                ctx.translate(sX, sY);
-                
-                // Note: Linear gradient for vertical bars/lines (default)
-                const gradient = ctx.createLinearGradient(0, sHeight, 0, 0);
-                gradient.addColorStop(0, spectrumColor1.value);
-                gradient.addColorStop(1, spectrumColor2.value);
-                ctx.fillStyle = gradient;
-                ctx.strokeStyle = gradient;
-
-                switch(spectrumStyle) {
-                    case 'bars': drawBars(sWidth, sHeight); break;
-                    case 'bouncing-bars': drawBouncingBars(sWidth, sHeight); break;
-                    case 'dj-disc': drawDjDisc(sWidth, sHeight); break;
-                    case 'circle-bars': drawCircleBars(sWidth, sHeight); break;
-                    case 'ring-spectrum': drawRingSpectrum(sWidth, sHeight); break; 
-                    case 'ncs-lines': drawNCSLines(sWidth, sHeight); break; 
-                    case 'wave-mesh': drawWaveMesh(sWidth, sHeight); break; 
-                    case 'wireframe-3d': drawWireframe3D(sWidth, sHeight); break; // NEW STYLE 1
-                    case 'frequency-mirror': drawFrequencyMirror(sWidth, sHeight); break; // NEW STYLE 2
-                    case 'dual-lines': drawDualLines(sWidth, sHeight); break;
-                    case 'wave': drawWave(sWidth, sHeight); break;
-                }
-                ctx.restore();
-            }
-            ctx.restore(); // Restore from bloom effect
-
-            // Render Particles
-            ctx.save();
-            if (bloomEffect.checked) {
-                ctx.shadowColor = '#FFFFFF';
-                ctx.shadowBlur = bloomIntensity.value;
-            }
-            const particleStyle = particleType.value;
-            if (particleStyle !== 'none') {
-                switch(particleStyle) {
-                    case 'particles': drawParticles(canvas.width, canvas.height); break;
-                    case 'particle-rain': drawParticleRain(canvas.width, canvas.height); break;
-                    case 'spinning-galaxy': drawSpinningGalaxy(canvas.width, canvas.height); break;
-                }
-            }
-            ctx.restore();
-
-            drawTextOverlay();
-        };
-
-        // --- Gaya Visualizer ---
-        const drawShape = (x, y, size) => {
-            const shape = particleShape.value;
-            ctx.beginPath();
-            if (shape === 'circle') {
-                ctx.arc(x, y, size, 0, 2 * Math.PI);
-            } else if (shape === 'square') {
-                ctx.rect(x - size, y - size, size * 2, size * 2);
-            } else if (shape === 'triangle') {
-                ctx.moveTo(x, y - size);
-                ctx.lineTo(x - size, y + size);
-                ctx.lineTo(x + size, y + size);
-                ctx.closePath();
-            }
-            ctx.fill();
-        };
-        const drawBars = (width, height) => {
-            const numBars = parseInt(spectrumNumBars.value);
-            const barThickness = parseInt(spectrumBarThickness.value);
-            const totalBarSpace = width / numBars;
-            for (let i = 0; i < numBars; i++) {
-                const dataIndex = Math.floor(i * (bufferLength / numBars));
-                const barHeight = (dataArray[dataIndex] / 255.0) * height;
-                const barX = i * totalBarSpace + (totalBarSpace - barThickness) / 2;
-                ctx.fillRect(barX, height - barHeight, barThickness, barHeight);
-            }
-        };
-        const drawBouncingBars = (width, height) => {
-            const numBars = parseInt(spectrumNumBars.value);
-            if (ballHeights.length !== numBars) ballHeights = new Array(numBars).fill(0);
-            const barThickness = parseInt(spectrumBarThickness.value);
-            const totalBarSpace = width / numBars;
-            const gravity = 1.5;
-            
-            for (let i = 0; i < numBars; i++) {
-                const dataIndex = Math.floor(i * (bufferLength / numBars));
-                const barHeight = (dataArray[dataIndex] / 255.0) * height;
-                const barX = i * totalBarSpace + (totalBarSpace - barThickness) / 2;
-                ctx.fillRect(barX, height - barHeight, barThickness, barHeight);
-                if (barHeight > ballHeights[i]) {
-                    ballHeights[i] = barHeight;
-                } else {
-                    ballHeights[i] = Math.max(ballHeights[i] - gravity, 0);
-                }
-                
-                ctx.beginPath();
-                const ballRadius = barThickness;
-                const ballCenterX = barX + barThickness / 2;
-                ctx.arc(ballCenterX, height - ballHeights[i] - ballRadius, ballRadius, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        };
-        const drawWave = (width, height) => {
-             ctx.lineWidth = 3;
-             ctx.lineCap = 'round';
-            ctx.beginPath();
-            const sliceWidth = width * 1.0 / bufferLength;
-            let x = 0;
-            const centerY = height / 2; // Draw wave centered vertically in its box
-            for (let i = 0; i < bufferLength; i++) {
-                // Scale value to half the height
-                const v = dataArray[i] / 255.0; 
-                const y = centerY + (v * centerY * 0.8 * Math.sin(x / width * Math.PI * 2)); // Use a slight sin wave modulation
-                if (i === 0) ctx.moveTo(x, centerY); // Start at center
-                else ctx.lineTo(x, y);
-                x += sliceWidth;
-            }
-            ctx.stroke();
-        };
-        const drawCircleBars = (width, height) => {
-            const numBars = parseInt(spectrumNumBars.value);
-            const barThickness = parseInt(spectrumBarThickness.value);
-            const centerX = width/2, centerY = height/2;
-            const radius = Math.min(width, height) * 0.3; // Increased radius slightly
-            const maxBarHeight = Math.min(width, height) * 0.25;
-            for(let i=0; i<numBars; i++){
-                const dataIndex = Math.floor(i * (bufferLength / numBars));
-                const barHeight = (dataArray[dataIndex] / 255) * maxBarHeight;
-                const angle = (i/numBars) * Math.PI * 2;
-                const x1 = centerX + Math.cos(angle) * radius;
-                const y1 = centerY + Math.sin(angle) * radius;
-                const x2 = centerX + Math.cos(angle) * (radius + barHeight);
-                const y2 = centerY + Math.sin(angle) * (radius + barHeight);
-                ctx.lineWidth = barThickness;
-                ctx.beginPath();
-                ctx.moveTo(x1,y1);
-                ctx.lineTo(x2,y2);
-                ctx.stroke();
+                stopPlayback();
+                elements.previewBtn.click(); // Toggle button state
             }
         };
 
-        const drawRingSpectrum = (width, height) => {
-            const numBars = parseInt(spectrumNumBars.value);
-            const barThickness = parseInt(spectrumBarThickness.value);
-            const centerX = width / 2;
-            const centerY = height / 2;
-            // Radius tengah statis
-            const innerRadius = Math.min(width, height) * 0.25; 
-            // Jarak maksimum batang dari cincin dalam
-            const maxExtension = Math.min(width, height) * 0.15;
-            const outerRadiusMax = innerRadius + maxExtension; 
-
-            // 1. Gambar Cincin Tengah Solid (Cincin Batas Dalam)
-            // Ini adalah area 'AUDIO VISUALIZER' di gambar Anda
-            ctx.save();
-            
-            // Gradien Radial untuk Cincin Batas
-            const boundaryGradient = ctx.createRadialGradient(
-                centerX, centerY, innerRadius * 0.98, // Mulai dari dalam sedikit
-                centerX, centerY, outerRadiusMax + 4 // Akhir di luar batas cincin
-            );
-            boundaryGradient.addColorStop(0, '#000000'); // Hitam di tengah
-            boundaryGradient.addColorStop(0.3, spectrumColor1.value);
-            boundaryGradient.addColorStop(1, spectrumColor2.value);
-
-
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, outerRadiusMax + 4, 0, Math.PI * 2);
-            ctx.strokeStyle = boundaryGradient;
-            ctx.lineWidth = 4;
-            ctx.stroke(); // Cincin luar (untuk batas)
-
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2);
-            ctx.strokeStyle = spectrumColor2.value; 
-            ctx.lineWidth = 4;
-            ctx.stroke(); // Cincin dalam (untuk batas)
-
-            // 2. Gambar Batang Radial (spektrum dinamis)
-            const angleStep = (Math.PI * 2) / numBars;
-            const barArcLength = angleStep * 0.8; // Membuat segmen batang sedikit terpisah
-
-            for (let i = 0; i < numBars; i++) {
-                const dataIndex = Math.floor(i * (bufferLength / numBars));
-                const barIntensity = dataArray[dataIndex] / 255;
-                const barLength = barIntensity * maxExtension;
-                
-                const startAngle = i * angleStep;
-                
-                // Gunakan gradien vertikal/radial di sepanjang batang
-                const barGradient = ctx.createLinearGradient(
-                    centerX, 0, centerX, centerY
-                );
-                barGradient.addColorStop(0, spectrumColor2.value);
-                barGradient.addColorStop(1, spectrumColor1.value);
-
-                ctx.strokeStyle = barGradient;
-                ctx.lineWidth = barThickness;
-                ctx.lineCap = 'butt'; // Garis yang datar
-
-                // Menggambar batang sebagai segmen busur melingkar (lebih padat)
-                ctx.beginPath();
-                ctx.arc(centerX, centerY, innerRadius + barLength, startAngle, startAngle + barArcLength);
-                ctx.stroke();
-            }
-
-            // 3. Gambar Logo/Teks di Tengah (jika ada)
-            if (djLogoImage && djLogoImage.complete) {
-                // Menggambar logo dengan clipping
-                ctx.save();
-                ctx.beginPath();
-                ctx.arc(centerX, centerY, innerRadius * 0.9, 0, 2 * Math.PI);
-                ctx.clip();
-                const logoSize = innerRadius * 1.8;
-                ctx.drawImage(djLogoImage, centerX - logoSize / 2, centerY - logoSize / 2, logoSize, logoSize);
-                ctx.restore();
-            } else {
-                // Area teks statis
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                
-                ctx.font = `bold ${innerRadius * 0.3}px Poppins`;
-                ctx.fillStyle = '#FFFFFF';
-                ctx.fillText("AUDIO", centerX, centerY - innerRadius * 0.1);
-
-                ctx.font = `${innerRadius * 0.15}px Poppins`;
-                ctx.fillStyle = '#D1D5DB';
-                ctx.fillText("VISUALIZER", centerX, centerY + innerRadius * 0.1);
-            }
-            
-            ctx.restore(); // Akhir drawRingSpectrum
-        };
-
-        
-        // --- VISUALIZER STYLE: Wireframe 3D ---
-        const drawWireframe3D = (width, height) => {
-            const centerX = width / 2;
-            const centerY = height / 2;
-            const baseRadius = Math.min(width, height) * 0.4;
-            const numRings = 10; // Jumlah lingkaran pada sumbu Z
-            const numPointsPerRing = 100;
-            const ringSpeed = 0.01;
-            
-            // Pengaturan 3D Sederhana
-            const perspective = 0.002;
-            const zSpacing = baseRadius / numRings;
-
-            for (let r = 0; r < numRings; r++) {
-                const currentZ = (r - numRings / 2) * zSpacing;
-                
-                // Hitung faktor skala berdasarkan Z (mendekati = besar)
-                const scaleFactor = 1 / (1 + currentZ * perspective);
-                
-                // Kecilkan radius seiring ring bergerak ke belakang
-                const ringRadius = baseRadius * scaleFactor * (1 - r * 0.02);
-                
-                // Rotasi Cincin (sepanjang Z)
-                const currentAngleOffset = rotationAngle * ringSpeed * (numRings - r);
-
-                ctx.beginPath();
-                ctx.strokeStyle = spectrumColor1.value;
-                ctx.lineWidth = 1.5 * scaleFactor;
-                ctx.globalAlpha = 0.2 + (0.8 * scaleFactor);
-
-                for (let i = 0; i < numPointsPerRing; i++) {
-                    const dataIndex = Math.floor(i * (bufferLength / numPointsPerRing));
-                    const magnitude = dataArray[dataIndex] / 255.0;
-                    
-                    // Perturbasi radius berdasarkan audio
-                    const perturbation = magnitude * 20 * scaleFactor;
-                    const finalRadius = ringRadius + perturbation;
-
-                    const angle = (i / numPointsPerRing) * Math.PI * 2 + currentAngleOffset;
-                    
-                    const x = centerX + Math.cos(angle) * finalRadius;
-                    const y = centerY + Math.sin(angle) * finalRadius * 0.6; // Efek Ellipse untuk ilusi perspektif
-
-                    if (i === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                }
-                ctx.closePath();
-                ctx.stroke();
-            }
-            ctx.globalAlpha = 1.0;
-        }
-
-        // --- VISUALIZER STYLE: Frequency Mirror (Quad-Split) ---
-        const drawFrequencyMirror = (width, height) => {
-            ctx.save();
-            ctx.translate(width/2, height/2); // Pindah ke titik pusat box spektrum
-            
-            const numBars = parseInt(spectrumNumBars.value);
-            const barThickness = parseInt(spectrumBarThickness.value);
-            // Gunakan hanya kuartal pertama data frekuensi
-            const dataSubset = dataArray.slice(0, Math.floor(bufferLength / 4));
-            const totalBarsUsed = numBars / 4; 
-            const totalBarSpace = (width / 2) / totalBarsUsed;
-            
-            // 1. Kuadran Atas Kanan (Normal)
-            ctx.save();
-            ctx.fillStyle = spectrumColor1.value; 
-            for (let i = 0; i < totalBarsUsed; i++) {
-                const dataIndex = Math.floor(i * (dataSubset.length / totalBarsUsed));
-                const barHeight = (dataSubset[dataIndex] / 255.0) * (height / 2);
-                const barX = i * totalBarSpace;
-                // Gambar dari tengah ke kanan, dari tengah ke atas
-                ctx.fillRect(barX, 0, barThickness, -barHeight); 
-            }
-            ctx.restore();
-
-            // 2. Kuadran Atas Kiri (Mirror X)
-            ctx.save();
-            ctx.scale(-1, 1); // Cerminkan di sumbu X
-            ctx.fillStyle = spectrumColor2.value; 
-            for (let i = 0; i < totalBarsUsed; i++) {
-                const dataIndex = Math.floor(i * (dataSubset.length / totalBarsUsed));
-                const barHeight = (dataSubset[dataIndex] / 255.0) * (height / 2);
-                const barX = i * totalBarSpace;
-                ctx.fillRect(barX, 0, barThickness, -barHeight); 
-            }
-            ctx.restore();
-
-            // 3. Kuadran Bawah Kanan (Mirror Y)
-            ctx.save();
-            ctx.scale(1, -1); // Cerminkan di sumbu Y (dibanding Kuadran 1)
-            ctx.fillStyle = spectrumColor2.value;
-             for (let i = 0; i < totalBarsUsed; i++) {
-                const dataIndex = Math.floor(i * (dataSubset.length / totalBarsUsed));
-                const barHeight = (dataSubset[dataIndex] / 255.0) * (height / 2);
-                const barX = i * totalBarSpace;
-                ctx.fillRect(barX, 0, barThickness, -barHeight); 
-            }
-            ctx.restore();
-            
-            // 4. Kuadran Bawah Kiri (Mirror X dan Y)
-            ctx.save();
-            ctx.scale(-1, -1); // Cerminkan di kedua sumbu (dibanding Kuadran 1)
-            ctx.fillStyle = spectrumColor1.value;
-             for (let i = 0; i < totalBarsUsed; i++) {
-                const dataIndex = Math.floor(i * (dataSubset.length / totalBarsUsed));
-                const barHeight = (dataSubset[dataIndex] / 255.0) * (height / 2);
-                const barX = i * totalBarSpace;
-                ctx.fillRect(barX, 0, barThickness, -barHeight); 
-            }
-            ctx.restore();
-
-            ctx.restore(); // Restore back to original translation (outside sX, sY box)
-        };
-
-        // --- VISUALIZER STYLE: Wave Mesh (Original code) ---
-        const drawWaveMesh = (width, height) => {
-            const centerX = width / 2;
-            const centerY = height / 2;
-            const baseRadius = Math.min(width, height) * 0.35;
-            const maxPerturbation = Math.min(width, height) * 0.15; 
-            const numPoints = 128; // Fewer points for mesh effect
-            
-            // Calculate a subset of data (only use the lower frequencies for smooth bass response)
-            const dataSubset = dataArray.slice(0, 512); 
-            const step = dataSubset.length / numPoints;
-            const points = [];
-
-            // 1. Calculate Distorted Points
-            for (let i = 0; i < numPoints; i++) {
-                const dataIndex = Math.floor(i * step);
-                const magnitude = dataSubset[dataIndex] / 255; // 0 to 1
-                
-                // Perturb the radius based on magnitude
-                // Also add a little sine wave perturbation based on time (rotationAngle) for constant movement
-                const timePerturbation = Math.sin(rotationAngle * 10 + i * 0.1) * 0.05;
-                const currentRadius = baseRadius + (magnitude * maxPerturbation) + (maxPerturbation * timePerturbation);
-                
-                const angle = (i / numPoints) * Math.PI * 2;
-                
-                const x = centerX + Math.cos(angle) * currentRadius;
-                const y = centerY + Math.sin(angle) * currentRadius;
-                
-                points.push({ x, y, magnitude });
-            }
-
-            // 2. Draw Connecting Lines (Wireframe/Mesh)
-            ctx.strokeStyle = spectrumColor1.value; 
-            ctx.lineWidth = 1;
-            ctx.globalAlpha = 0.2;
-            ctx.beginPath();
-
-            for (let i = 0; i < numPoints; i++) {
-                const p = points[i];
-                const nextP = points[(i + 1) % numPoints];
-                
-                if (i === 0) ctx.moveTo(p.x, p.y);
-                else ctx.lineTo(p.x, p.y);
-            }
-            ctx.closePath();
-            ctx.stroke();
-            ctx.globalAlpha = 1.0;
-
-            // 3. Draw Dots/Nodes (Pulsating Glow)
-            for (const p of points) {
-                const alpha = 0.5 + p.magnitude * 0.5; // More intensity = brighter dot
-                ctx.globalAlpha = alpha;
-                
-                // Create radial gradient for the dots for a softer edge (using spectrumColor2 as the center)
-                const dotGradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 4);
-                dotGradient.addColorStop(0, spectrumColor2.value);
-                dotGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-                
-                ctx.fillStyle = dotGradient;
-                ctx.beginPath();
-                // Dot size pulses with the magnitude
-                ctx.arc(p.x, p.y, 2 + p.magnitude * 2.5, 0, Math.PI * 2); 
-                ctx.fill();
-            }
-            ctx.globalAlpha = 1.0;
-        };
-
-        // --- VISUALIZER STYLE: NCS Lines (Original code) ---
-        const drawNCSLines = (width, height) => {
-            const lineWidth = 3;
-            ctx.lineWidth = lineWidth;
-            ctx.lineCap = 'round';
-
-            // Use the frequency data for the wave amplitude
-            const dataSubset = dataArray.slice(0, 512); // Use half the frequency data for stability
-            const sliceWidth = width * 1.0 / dataSubset.length;
-            const centerY = height / 2;
-            const maxAmplitude = centerY * 0.9;
-
-            // Draw Top Line
-            ctx.beginPath();
-            let x = 0;
-            for (let i = 0; i < dataSubset.length; i++) {
-                // Scale value from 0-255 to 0-maxAmplitude
-                const amplitude = (dataSubset[i] / 255.0) * maxAmplitude; 
-                // Invert amplitude based on index/time to create a slight dynamic movement
-                const y = centerY - amplitude; 
-                
-                if (i === 0) ctx.moveTo(x, centerY);
-                else ctx.lineTo(x, y);
-                x += sliceWidth;
-            }
-            ctx.stroke();
-
-            // Draw Bottom Line (Symmetrical Inversion)
-            ctx.beginPath();
-            x = 0;
-            for (let i = 0; i < dataSubset.length; i++) {
-                const amplitude = (dataSubset[i] / 255.0) * maxAmplitude; 
-                const y = centerY + amplitude; // Mirrored on the bottom
-                
-                if (i === 0) ctx.moveTo(x, centerY);
-                else ctx.lineTo(x, y);
-                x += sliceWidth;
-            }
-            ctx.stroke();
-            
-            // Optional: Draw a thin central line
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(0, centerY);
-            ctx.lineTo(width, centerY);
-            ctx.stroke();
-        };
-
-        // --- DJ Disc Visualizer (Original code) ---
-        const drawDjDisc = (width, height) => {
-            const centerX = width/2, centerY = height/2;
-            const discRadius = Math.min(width, height) / 2.5;
-            const bass = (dataArray[1] + dataArray[2] + dataArray[3])/3;
-
-            // 1. Draw Rotating Vinyl Disc
-            ctx.save();
-            ctx.translate(centerX, centerY);
-            ctx.rotate(rotationAngle);
-            ctx.beginPath();
-            ctx.arc(0,0, discRadius, 0, 2*Math.PI);
-            ctx.fillStyle = '#1a1a1a';
-            ctx.fill();
-            ctx.strokeStyle = '#333333';
-            ctx.lineWidth = 1;
-            // Draw vinyl grooves
-            for (let i = discRadius * 0.95; i > discRadius * 0.4; i -= 4) {
-                 ctx.beginPath();
-                 ctx.arc(0, 0, i, 0, 2 * Math.PI);
-                 ctx.stroke();
-            }
-            ctx.restore();
-
-            // 2. Draw Pulsating Logo Label
-            ctx.save();
-            ctx.translate(centerX, centerY);
-            const labelRadius = discRadius * 0.3;
-            const pulse = (bass/255) * (discRadius * 0.1);
-            if (djLogoImage && djLogoImage.complete) {
-                // Draw clipped image
-                ctx.save();
-                ctx.beginPath();
-                ctx.arc(0,0, labelRadius + pulse, 0, 2 * Math.PI);
-                ctx.clip();
-                const logoSize = (labelRadius + pulse) * 2;
-                ctx.drawImage(djLogoImage, -logoSize/2, -logoSize/2, logoSize, logoSize);
-                ctx.restore();
-            } else {
-                // Draw placeholder circle if no logo
-                ctx.beginPath();
-                ctx.arc(0,0,labelRadius + pulse, 0, 2*Math.PI);
-                ctx.fillStyle = spectrumColor1.value;
-                ctx.fill();
-            }
-            ctx.restore();
-        };
-        const drawDualLines = (width, height) => {
-             ctx.lineWidth = 3;
-            const sliceWidth = width * 1.0 / bufferLength;
-            const centerY = height/2;
-            
-            // Draw top line
-            ctx.beginPath();
-            let x = 0;
-            for (let i = 0; i < bufferLength; i++) {
-                const v = dataArray[i] / 255.0; // Max amplitude 1
-                const y = centerY - (v * centerY); // Line goes from center up to max height
-                if (i === 0) ctx.moveTo(x, centerY);
-                else ctx.lineTo(x, y);
-                x += sliceWidth;
-            }
-            ctx.stroke();
-
-            // Draw bottom line
-            ctx.beginPath();
-            x = 0;
-            for (let i = 0; i < bufferLength; i++) {
-                const v = dataArray[i] / 255.0;
-                const y = centerY + (v * centerY); // Line goes from center down to max height
-                if (i === 0) ctx.moveTo(x, centerY);
-                else ctx.lineTo(x, y);
-                x += sliceWidth;
-            }
-            ctx.stroke();
-        };
-        const drawParticles = (w, h) => {
-            const opac = particleOpacity.value / 100;
-            for (let i = 0; i < bufferLength; i++) {
-                const mag = dataArray[i] / 255;
-                if (mag > 0.6) { // Only draw particles for high energy frequencies
-                    const x = Math.random() * w, y = Math.random() * h, r = mag * 5;
-                    ctx.fillStyle = `rgba(255, 255, 255, ${opac * mag})`;
-                    drawShape(x, y, r);
-                }
-            }
-        };
-        const drawParticleRain = (w, h) => {
-            const avg = dataArray.reduce((a, v) => a + v, 0) / bufferLength, opac = particleOpacity.value / 100;
-            particlesArray.forEach(p => {
-                // Increase speed based on audio energy (avg)
-                const audioSpeedBoost = (avg / 255) * 1.5;
-                p.y += p.speed + audioSpeedBoost;
-
-                if(p.y > h) { p.y = 0; p.x = Math.random() * w; }
-                const finalOpac = opac * Math.max(0, avg / 128 - 0.2);
-                ctx.fillStyle = `rgba(255, 255, 255, ${finalOpac})`;
-                drawShape(p.x, p.y, p.size);
-            });
-        }
-        const drawSpinningGalaxy = (w, h) => {
-            const cX = w / 2, cY = h / 2, opac = particleOpacity.value / 100;
-            const avg = dataArray.reduce((a, v) => a + v, 0) / bufferLength;
-
-            particlesArray.forEach((p, i) => {
-                // Speed up rotation based on bass energy
-                const bass = (dataArray[1] + dataArray[2] + dataArray[3])/3 / 255;
-                p.angle += p.speed + (bass * 0.03); 
-
-                const mag = dataArray[i % bufferLength] / 255.0;
-                const r = p.radius + mag * 50;
-                const x = cX + Math.cos(p.angle) * r, y = cY + Math.sin(p.angle) * r;
-                const finalOpac = opac * mag * 0.5; // Base opacity lower for galaxy effect
-                ctx.fillStyle = `rgba(255, 255, 255, ${finalOpac})`;
-                drawShape(x, y, p.size);
-            });
-        };
-
-        // --- Logika Perekaman ---
-        // Note: The original recording logic using MediaStream Destination is mostly correct.
-        // I've ensured startPlayback runs initAudioContext before recording starts.
+        // --- Recording Logic ---
         const startRecording = () => {
-            const activeMedia = useVideoAudio ? videoElement : audioElement;
-            // Ensure audio context is connected to the analyser first
-            initAudioContext();
-            
-            // Connect to a new destination node to capture the audio stream
-            const audioDestination = audioContext.createMediaStreamDestination();
-            analyser.connect(audioDestination);
-            
-            recordedChunks = [];
-            const canvasStream = canvas.captureStream(30); // 30 FPS
-            const combinedStream = new MediaStream([...canvasStream.getVideoTracks(), ...audioDestination.stream.getAudioTracks()]);
-            
-            const options = { 
-                mimeType: 'video/webm; codecs=vp9,opus',
-                videoBitsPerSecond: 5000000 
-            };
-            
-            try { mediaRecorder = new MediaRecorder(combinedStream, options); }
-            catch (e) { status.textContent = 'Error: Browser tidak mendukung format rekaman.'; status.classList.remove('hidden'); return; }
-            
-            mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
-            mediaRecorder.onstop = () => {
-                // Ensure the analyzer connects back to the speakers/destination after recording stops
-                analyser.disconnect(audioDestination);
-                analyser.connect(audioContext.destination);
+            // Reset to start for auto-recording from 0:00
+            if (state.isPlaying) stopPlayback(); 
+            elements.audio.currentTime = 0;
+            elements.video.currentTime = 0;
 
-                stopPlayback(); // Stop visualizer and reset audio/video time
-                const blob = new Blob(recordedChunks, { type: 'video/webm' });
+            // Capture visual stream
+            const canvasStream = elements.canvas.captureStream(30);
+            
+            // Capture audio stream
+            const dest = state.audioCtx.createMediaStreamDestination();
+            state.analyser.connect(dest);
+            
+            const tracks = [...canvasStream.getVideoTracks(), ...dest.stream.getAudioTracks()];
+            const combined = new MediaStream(tracks);
+            
+            try {
+                state.mediaRecorder = new MediaRecorder(combined, { 
+                    mimeType: 'video/webm; codecs=vp9,opus',
+                    videoBitsPerSecond: 5000000 // 5 Mbps
+                });
+            } catch(e) {
+                showAlert("Browser doesn't support high-quality WebM recording", 'error');
+                return;
+            }
+            
+            state.chunks = [];
+            state.mediaRecorder.ondataavailable = e => { if(e.data.size > 0) state.chunks.push(e.data); };
+            state.mediaRecorder.onstop = () => {
+                state.analyser.disconnect(dest); // Clean up
+                const blob = new Blob(state.chunks, { type: 'video/webm' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.style.display = 'none'; a.href = url; a.download = `audio-visualizer-${Date.now()}.webm`;
-                document.body.appendChild(a); a.click();
-                window.URL.revokeObjectURL(url); document.body.removeChild(a);
-                status.textContent = 'Video berhasil diunduh!'; recordBtn.textContent = 'Mulai Rekam & Ekspor Video';
-                setTimeout(() => { status.classList.add('hidden')}, 4000);
+                a.href = url;
+                a.download = `visualizer-${Date.now()}.webm`;
+                a.click();
+                elements.overlayStatus.classList.add('hidden');
+                showAlert("Video Exported Successfully!");
+                stopPlayback();
+                elements.previewBtn.click(); // Reset UI
             };
-
-            // Set up stop logic if the media ends naturally
-            activeMedia.onended = () => { if (mediaRecorder?.state === 'recording') stopRecording(); };
             
-            mediaRecorder.start();
-            startPlayback();
-            status.textContent = 'Merekam... Video akan diunduh saat audio selesai.';
-            status.classList.remove('hidden');
-            recordBtn.textContent = 'Berhenti Merekam';
-        };
-        const stopRecording = () => { 
-            if(mediaRecorder) mediaRecorder.stop(); 
+            state.mediaRecorder.start();
+            elements.overlayStatus.classList.remove('hidden');
+            elements.recordBtn.innerHTML = `<span class="animate-pulse text-red-300">Recording... Click to Stop</span>`;
+
+            // Start playback immediately after recorder starts
+            startPlayback(); 
         };
         
-        // --- Inisialisasi Akhir ---
-        populatePresets();
-        resizeCanvas(); // Initial canvas resize
-        ['spectrumType', 'particleType', 'bloomEffect'].forEach(id => document.getElementById(id).dispatchEvent(new Event('change')));
-        drawBackground();
+        const stopRecording = () => {
+             if(state.mediaRecorder) state.mediaRecorder.stop();
+             elements.recordBtn.innerHTML = `<div class="w-2 h-2 bg-white rounded-full animate-pulse"></div> Start Recording (WebM)`;
+        };
+
+        elements.recordBtn.addEventListener('click', () => {
+            if(state.mediaRecorder?.state === 'recording') stopRecording();
+            else startRecording();
+        });
+
+        // Add video end handling for auto-stop recording when video finishes
+        elements.video.onended = () => {
+             if(state.mediaRecorder && state.mediaRecorder.state === 'recording') {
+                 stopRecording();
+            }
+        };
+
+        // --- Preset Logic ---
+        const loadPresets = () => {
+            elements.loadPreset.innerHTML = '<option value="">Load Preset...</option>';
+            for(let i=0; i<localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if(k.startsWith('vizPreset_')) {
+                    const name = k.replace('vizPreset_','');
+                    const opt = document.createElement('option');
+                    opt.value = name; opt.text = name;
+                    elements.loadPreset.appendChild(opt);
+                }
+            }
+        };
+
+        elements.savePreset.addEventListener('click', () => {
+            const name = elements.presetName.value.trim();
+            if(!name) return showAlert("Enter a preset name", "error");
+            
+            const data = {};
+            document.querySelectorAll('input, select').forEach(el => {
+                if(el.type !== 'file' && el.id) {
+                    data[el.id] = el.type === 'checkbox' ? el.checked : el.value;
+                }
+            });
+            data.textAlign = state.textAlign;
+            data.textBaseline = state.textBaseline;
+            data.posActive = document.querySelector('.preset-btn.active')?.dataset.pos;
+            
+            localStorage.setItem(`vizPreset_${name}`, JSON.stringify(data));
+            loadPresets();
+            showAlert("Preset Saved");
+        });
+
+        elements.loadPreset.addEventListener('change', (e) => {
+            const name = e.target.value;
+            if(!name) {
+                updateUI();
+                return;
+            }
+            const data = JSON.parse(localStorage.getItem(`vizPreset_${name}`));
+            if(data) {
+                Object.keys(data).forEach(k => {
+                    const el = document.getElementById(k);
+                    if(el) {
+                        if(el.type === 'checkbox') el.checked = data[k];
+                        else el.value = data[k];
+                        el.dispatchEvent(new Event('input')); // Trigger live updates
+                        el.dispatchEvent(new Event('change'));
+                    }
+                });
+                if(data.posActive) {
+                    document.querySelectorAll('.preset-btn').forEach(b => {
+                         if(b.dataset.pos === data.posActive) b.click();
+                    });
+                }
+                showAlert("Preset Loaded");
+            }
+            updateUI();
+        });
+        
+        elements.delPreset.addEventListener('click', () => {
+            const name = elements.loadPreset.value;
+            if(!name) return;
+            localStorage.removeItem(`vizPreset_${name}`);
+            loadPresets();
+            elements.loadPreset.value = "";
+            updateUI();
+            showAlert(`Deleted preset: ${name}`, "error");
+        });
+
+        // --- UI Listeners ---
+        // Bloom Toggle
+        elements.bloom.addEventListener('change', (e) => {
+            elements.bloomContainer.style.display = e.target.checked ? 'block' : 'none';
+        });
+
+        // Input live updates
+        // Corrected the ID array here: used 'bgPulseEffect' instead of 'bgPulse'
+        ['bgPulseEffect','spectrumType','particleType'].forEach(id => {
+            const el = document.getElementById(id);
+            if(el) {
+                el.addEventListener('change', () => {
+                    updateUI();
+                    if(!state.isPlaying) drawStaticScene();
+                });
+            }
+        });
+        
+        document.querySelectorAll('input[type="range"], input[type="color"], input[type="text"], select').forEach(el => {
+             el.addEventListener('input', () => {
+                 if(!state.isPlaying) drawStaticScene();
+             });
+        });
+
+        // Text Position Presets
+        elements.posPresets.addEventListener('click', e => {
+            if(!e.target.classList.contains('preset-btn')) return;
+            
+            document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            
+            const pos = e.target.dataset.pos;
+            const [v, h] = pos.split('-');
+            
+            state.textAlign = h; // left, center, right
+            state.textBaseline = v === 'middle' ? 'middle' : (v === 'top' ? 'top' : 'bottom');
+
+            const map = {
+                'left': 5, 'center': 50, 'right': 95,
+                'top': 10, 'middle': 50, 'bottom': 90
+            };
+            
+            elements.textPosX.value = map[h];
+            elements.textPosY.value = map[v];
+            
+            if(!state.isPlaying) drawStaticScene();
+        });
+
+        // Resize Logic
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            drawStaticScene();
+        });
+
+        // Init
+        resizeCanvas();
+        loadPresets();
         updateUI();
     });
     </script>
