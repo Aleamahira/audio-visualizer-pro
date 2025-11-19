@@ -23,6 +23,7 @@
         }
         .preview-panel {
             background-color: #000;
+            /* Container will manage the canvas size */
         }
         .btn {
             transition: all 0.2s ease-in-out;
@@ -58,8 +59,10 @@
             opacity: 0.6;
         }
         #visualizerCanvas {
-            width: 100%;
-            height: 100%;
+            /* Now handled by JS, but keeping these for visual appearance within the container */
+            display: block;
+            max-width: 100%;
+            max-height: 100%;
             object-fit: contain;
             border-radius: 0.5rem;
         }
@@ -115,7 +118,8 @@
 
     <div class="flex flex-col h-screen">
         <!-- Preview Panel -->
-        <div class="w-full h-[60vh] p-4 flex items-center justify-center preview-panel">
+        <div id="previewPanel" class="w-full h-[60vh] p-4 flex items-center justify-center preview-panel relative">
+            <!-- Canvas size is now managed by JS to maintain the 16:9 ratio in internal resolution -->
             <canvas id="visualizerCanvas" width="1280" height="720"></canvas>
             <audio id="audioElement" crossOrigin="anonymous"></audio>
             <video id="videoElement" crossOrigin="anonymous" loop playsinline muted class="hidden"></video>
@@ -149,11 +153,14 @@
                         <label class="block mb-2 text-xs font-medium label-text">Preset Pengaturan</label>
                         <div class="flex gap-2">
                              <input type="text" id="presetName" placeholder="Nama Preset" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg w-full p-2.5">
-                             <button id="savePresetBtn" class="px-3 py-2 text-sm rounded-lg btn btn-secondary">Simpan</button>
+                             <button id="savePresetBtn" class="px-3 py-2 text-sm rounded-lg btn btn-secondary flex-shrink-0">Simpan</button>
                         </div>
-                        <select id="loadPresetSelect" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg w-full p-2.5 mt-2">
-                            <option value="">Muat Preset...</option>
-                        </select>
+                        <div class="flex gap-2 mt-2">
+                             <select id="loadPresetSelect" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg w-full p-2.5">
+                                 <option value="">Muat Preset...</option>
+                             </select>
+                             <button id="deletePresetBtn" class="px-3 py-2 text-sm rounded-lg btn btn-danger flex-shrink-0" style="display: none;">Hapus</button>
+                        </div>
                     </div>
                 </div>
 
@@ -167,6 +174,11 @@
                             <option value="bouncing-bars">Batang & Bola Pantul</option>
                             <option value="dj-disc">Piringan DJ</option>
                             <option value="circle-bars">Batang Melingkar</option>
+                            <option value="ring-spectrum">Spektrum Cincin</option> 
+                            <option value="ncs-lines">Garis NCS</option> 
+                            <option value="wave-mesh">Mesh Gelombang (Glow)</option> 
+                            <option value="wireframe-3d">Lingkaran Kawat 3D</option> <!-- NEW OPTION 1 -->
+                            <option value="frequency-mirror">Cermin Frekuensi</option> <!-- NEW OPTION 2 -->
                             <option value="dual-lines">Garis Ganda</option>
                             <option value="wave">Gelombang</option>
                             <option value="none">Tidak Ada</option>
@@ -204,14 +216,14 @@
                         </select>
                     </div>
                      <div id="particleControls" class="space-y-2" style="display: none;">
-                         <label for="particleShape" class="block mb-2 text-xs font-medium label-text">Bentuk Partikel</label>
-                         <select id="particleShape" class="control-input bg-gray-700 border border-gray-600 text-white text-sm rounded-lg w-full p-2.5">
+                          <label for="particleShape" class="block mb-2 text-xs font-medium label-text">Bentuk Partikel</label>
+                          <select id="particleShape" class="control-input bg-gray-700 border border-gray-600 text-white text-sm rounded-lg w-full p-2.5">
                             <option value="circle">Lingkaran</option>
                             <option value="square">Kotak</option>
                             <option value="triangle">Segitiga</option>
-                         </select>
-                         <label for="particleOpacity" class="block mb-1 text-xs font-medium label-text">Opacity Partikel</label>
-                         <input id="particleOpacity" type="range" min="0" max="100" value="80" class="control-input w-full">
+                          </select>
+                          <label for="particleOpacity" class="block mb-1 text-xs font-medium label-text">Opacity Partikel</label>
+                          <input id="particleOpacity" type="range" min="0" max="100" value="80" class="control-input w-full">
                     </div>
                     <div class="flex items-center justify-between pt-2 border-t border-gray-700">
                         <span class="text-sm font-medium label-text">Denyut Latar</span>
@@ -233,7 +245,7 @@
                     </div>
                 </div>
 
-                 <!-- Column 4: Text, Position & Actions -->
+                     <!-- Column 4: Text, Position & Actions -->
                 <div class="space-y-4">
                     <h2 class="text-lg font-semibold label-text pb-2 border-b border-gray-700">Teks, Posisi & Aksi</h2>
                      <div id="textControls" class="space-y-2">
@@ -246,36 +258,36 @@
                             <option style="font-family: 'Roboto Mono', monospace;" value="Roboto Mono">Roboto Mono</option>
                             <option style="font-family: Arial, sans-serif;" value="Arial">Arial</option>
                         </select>
-                         <label for="textFontSize" class="block mb-1 text-xs font-medium label-text">Ukuran Font</label>
-                         <input id="textFontSize" type="range" min="12" max="120" value="48" class="control-input w-full">
+                          <label for="textFontSize" class="block mb-1 text-xs font-medium label-text">Ukuran Font</label>
+                          <input id="textFontSize" type="range" min="12" max="120" value="48" class="control-input w-full">
                     </div>
                     <div class="grid grid-cols-2 gap-x-4 gap-y-2">
-                         <h3 class="col-span-2 text-sm font-medium label-text -mb-1">Posisi Spektrum</h3>
-                         <div>
-                             <label for="spectrumWidth" class="block mb-1 text-xs font-medium label-text">Lebar (%)</label>
-                             <input id="spectrumWidth" type="range" min="10" max="100" value="100" class="control-input w-full">
-                         </div>
+                          <h3 class="col-span-2 text-sm font-medium label-text -mb-1">Posisi Spektrum</h3>
                           <div>
-                             <label for="spectrumHeight" class="block mb-1 text-xs font-medium label-text">Tinggi (%)</label>
-                             <input id="spectrumHeight" type="range" min="10" max="100" value="50" class="control-input w-full">
-                         </div>
-                         <div>
+                              <label for="spectrumWidth" class="block mb-1 text-xs font-medium label-text">Lebar (%)</label>
+                              <input id="spectrumWidth" type="range" min="10" max="100" value="100" class="control-input w-full">
+                          </div>
+                           <div>
+                              <label for="spectrumHeight" class="block mb-1 text-xs font-medium label-text">Tinggi (%)</label>
+                              <input id="spectrumHeight" type="range" min="10" max="100" value="50" class="control-input w-full">
+                           </div>
+                           <div>
                             <label for="spectrumPosX" class="block mb-1 text-xs font-medium label-text">X (%)</label>
                             <input id="spectrumPosX" type="range" min="0" max="100" value="50" class="control-input w-full">
                         </div>
-                         <div>
-                            <label for="spectrumPosY" class="block mb-1 text-xs font-medium label-text">Y (%)</label>
-                            <input id="spectrumPosY" type="range" min="0" max="100" value="75" class="control-input w-full">
-                        </div>
-                         <h3 class="col-span-2 text-sm font-medium label-text mt-2 -mb-1">Posisi Teks</h3>
+                          <div>
+                              <label for="spectrumPosY" class="block mb-1 text-xs font-medium label-text">Y (%)</label>
+                              <input id="spectrumPosY" type="range" min="0" max="100" value="75" class="control-input w-full">
+                          </div>
+                          <h3 class="col-span-2 text-sm font-medium label-text mt-2 -mb-1">Posisi Teks</h3>
                         <div>
                             <label for="textPosX" class="block mb-1 text-xs font-medium label-text">X (%)</label>
                             <input id="textPosX" type="range" min="0" max="100" value="50" class="control-input w-full">
                         </div>
-                         <div>
-                            <label for="textPosY" class="block mb-1 text-xs font-medium label-text">Y (%)</label>
-                            <input id="textPosY" type="range" min="0" max="100" value="90" class="control-input w-full">
-                        </div>
+                          <div>
+                              <label for="textPosY" class="block mb-1 text-xs font-medium label-text">Y (%)</label>
+                              <input id="textPosY" type="range" min="0" max="100" value="90" class="control-input w-full">
+                          </div>
                     </div>
                     <div>
                         <div id="text-position-presets" class="grid grid-cols-3 gap-2 mx-auto w-max">
@@ -296,6 +308,9 @@
         </div>
     </div>
     
+    <!-- Custom Alert/Toast Container (New) -->
+    <div id="customAlert" class="fixed bottom-4 right-4 p-4 rounded-lg shadow-xl text-sm z-50 transition-opacity duration-300 opacity-0 pointer-events-none" style="min-width: 250px;"></div>
+
     <script>
     window.addEventListener('DOMContentLoaded', () => {
         // --- Elemen DOM ---
@@ -335,8 +350,11 @@
         const savePresetBtn = document.getElementById('savePresetBtn');
         const presetName = document.getElementById('presetName');
         const loadPresetSelect = document.getElementById('loadPresetSelect');
-        
+        const deletePresetBtn = document.getElementById('deletePresetBtn'); // New element
+        const customAlert = document.getElementById('customAlert'); // New element
+
         const canvas = document.getElementById('visualizerCanvas');
+        const previewPanel = document.getElementById('previewPanel');
         const ctx = canvas.getContext('2d');
         const audioElement = document.getElementById('audioElement');
         const videoElement = document.getElementById('videoElement');
@@ -358,26 +376,86 @@
         let ballHeights = [];
         let currentTextAlign = 'center';
         let currentTextBaseline = 'bottom';
+        const TARGET_ASPECT_RATIO = 1280 / 720; // 16:9 HD
+
+        // --- Utility Functions ---
+
+        // Custom alert function (replaces window.alert())
+        const showCustomAlert = (message, isError = false) => {
+            customAlert.textContent = message;
+            customAlert.classList.remove('bg-green-500', 'bg-red-500', 'text-white', 'opacity-0');
+            customAlert.classList.add(isError ? 'bg-red-500' : 'bg-green-500', 'text-white', 'opacity-100');
+            setTimeout(() => {
+                customAlert.classList.remove('opacity-100');
+                customAlert.classList.add('opacity-0');
+            }, 3000);
+        };
+
+        // Handles canvas responsiveness
+        const resizeCanvas = () => {
+            const containerWidth = previewPanel.clientWidth;
+            const containerHeight = previewPanel.clientHeight;
+            
+            let newWidth, newHeight;
+
+            // Calculate size based on container while maintaining 16:9 ratio
+            if (containerWidth / containerHeight > TARGET_ASPECT_RATIO) {
+                // Container is wider, height is the limiting factor
+                newHeight = containerHeight;
+                newWidth = newHeight * TARGET_ASPECT_RATIO;
+            } else {
+                // Container is taller or aspect ratio matches, width is the limiting factor
+                newWidth = containerWidth;
+                newHeight = newWidth / TARGET_ASPECT_RATIO;
+            }
+            
+            // Set internal drawing size and display size
+            canvas.width = 1280;
+            canvas.height = 720;
+            canvas.style.width = `${newWidth}px`;
+            canvas.style.height = `${newHeight}px`;
+
+            // Redraw static elements immediately
+            drawBackground();
+            drawTextOverlay();
+        };
+
+        window.addEventListener('resize', resizeCanvas);
+
 
         // --- Inisialisasi ---
         const initAudioContext = () => {
             if (audioContext) return;
+            // Safari fix: initialize AudioContext on user interaction
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             analyser = audioContext.createAnalyser();
             analyser.fftSize = 2048;
             bufferLength = analyser.frequencyBinCount;
             dataArray = new Uint8Array(bufferLength);
+            
+            // Create source nodes only once
             audioSource = audioContext.createMediaElementSource(audioElement);
             videoSource = audioContext.createMediaElementSource(videoElement);
+            
             analyser.connect(audioContext.destination);
         };
 
         const updateUI = () => {
-            const hasBackground = bgInput.files.length > 0 || backgroundImage;
+            const hasBackground = bgInput.files.length > 0 || backgroundImage || videoElement.src;
             const hasAudio = playlist.length > 0 || useVideoAudio;
             const canPreview = hasBackground && hasAudio;
+            
+            // Update Preview Button state
             previewBtn.disabled = !canPreview;
             previewBtn.classList.toggle('btn-disabled', !canPreview);
+
+            // Update Delete Preset Button visibility
+            deletePresetBtn.style.display = loadPresetSelect.value ? 'block' : 'none';
+
+            // Show bar controls only for bar-based visualizers
+            const barBasedTypes = ['bars', 'bouncing-bars', 'circle-bars', 'ring-spectrum']; 
+            // Note: ncs-lines and wave use frequency data, but are line-based so they don't need barThickness/numBars controls.
+            barControls.style.display = barBasedTypes.includes(spectrumType.value) ? 'grid' : 'none';
         };
         
         // --- Event Listeners ---
@@ -385,16 +463,25 @@
             const file = e.target.files[0]; if (!file) return;
             const url = URL.createObjectURL(file);
             if (file.type.startsWith('image/')) {
+                // Reset video, set image background
                 videoElement.src = ''; backgroundImage = new Image(); backgroundImage.src = url;
                 backgroundImage.onload = () => drawBackground(); useVideoAudio = false; audioInput.disabled = false;
             } else if (file.type.startsWith('video/')) {
+                // Set video background
                 backgroundImage = null; videoElement.src = url;
                 videoElement.onloadedmetadata = () => {
+                    // Check if video has an audio track
                     const hasAudio = videoElement.mozHasAudio || Boolean(videoElement.webkitAudioDecodedByteCount) || Boolean(videoElement.audioTracks?.length > 0);
                     if(hasAudio) {
                         initAudioContext(); audioInput.disabled = true;
-                        try { audioSource.disconnect(); } catch(err) {}
+                        try { 
+                            // Menghapus console.error di sini. Error tidak kritis karena terjadi saat mencoba memutuskan koneksi yang mungkin belum terhubung.
+                            audioSource.disconnect(analyser); 
+                        } catch(err) {} 
                         videoSource.connect(analyser); useVideoAudio = true;
+                    } else {
+                        // If video has no audio, rely on external audio input
+                        useVideoAudio = false; audioInput.disabled = false;
                     }
                     updateUI();
                 };
@@ -410,7 +497,10 @@
             currentTrackIndex = 0;
             audioElement.src = URL.createObjectURL(playlist[currentTrackIndex]);
             initAudioContext();
-            try { videoSource.disconnect(); } catch(err) {}
+            try { 
+                // Menghapus console.error di sini. Error tidak kritis karena terjadi saat mencoba memutuskan koneksi yang mungkin belum terhubung.
+                videoSource.disconnect(analyser); 
+            } catch(err) {} 
             audioSource.connect(analyser); useVideoAudio = false;
             updateUI();
         });
@@ -434,24 +524,17 @@
         previewBtn.addEventListener('click', () => { if (isPlaying) stopPlayback(); else startPlayback(); });
         recordBtn.addEventListener('click', () => { if (mediaRecorder?.state === 'recording') stopRecording(); else startRecording(); });
 
-        const initParticles = (type, width, height) => {
-            particlesArray = []; const particleCount = 150;
-            if (type === 'particle-rain') {
-                for(let i=0; i < particleCount; i++) particlesArray.push({ x: Math.random() * width, y: Math.random() * height, speed: Math.random() * 2 + 0.5, size: Math.random() * 2 + 1 });
-            } else if (type === 'spinning-galaxy') {
-                 for(let i=0; i < particleCount; i++) particlesArray.push({ radius: Math.random() * (width/3), angle: Math.random() * Math.PI * 2, speed: (Math.random() - 0.5) * 0.02, size: Math.random() * 2 + 1 });
-            }
-        }
-
+        // Listeners for visualizer controls
         spectrumType.addEventListener('change', () => {
             const type = spectrumType.value;
-            const barBasedTypes = ['bars', 'bouncing-bars', 'circle-bars'];
+            const barBasedTypes = ['bars', 'bouncing-bars', 'circle-bars', 'ring-spectrum'];
             barControls.style.display = barBasedTypes.includes(type) ? 'grid' : 'none';
             if (type === 'bouncing-bars') ballHeights = new Array(parseInt(spectrumNumBars.value)).fill(0);
+            updateUI(); // Calls updateUI to ensure bar controls are updated
         });
         
-        particleType.addEventListener('change', () => {
-            const type = particleType.value;
+        particleType.addEventListener('change', (e) => {
+            const type = e.target.value;
             particleControls.style.display = type !== 'none' ? 'block' : 'none';
             if(type !== 'none') initParticles(type, canvas.width, canvas.height);
         });
@@ -480,6 +563,9 @@
                 textPosY.value = newPos.y;
                 currentTextAlign = newPos.align;
                 currentTextBaseline = newPos.base;
+                // Visually update sliders
+                textPosX.dispatchEvent(new Event('input', { bubbles: true }));
+                textPosY.dispatchEvent(new Event('input', { bubbles: true }));
             }
         });
 
@@ -496,38 +582,64 @@
                     loadPresetSelect.appendChild(option);
                 }
             }
+            updateUI();
         };
 
         savePresetBtn.addEventListener('click', () => {
             const name = presetName.value.trim();
-            if (!name) { alert('Silakan masukkan nama preset.'); return; }
+            if (!name) { showCustomAlert('Silakan masukkan nama preset.', true); return; }
             
             const settings = {};
             document.querySelectorAll('.control-input').forEach(el => {
                 settings[el.id] = el.type === 'checkbox' ? el.checked : el.value;
             });
+            // Save current text alignment too
+            settings.currentTextAlign = currentTextAlign;
+            settings.currentTextBaseline = currentTextBaseline;
             
             localStorage.setItem(`visualizerPreset_${name}`, JSON.stringify(settings));
             populatePresets();
             presetName.value = '';
-            alert(`Preset "${name}" berhasil disimpan!`);
+            showCustomAlert(`Preset "${name}" berhasil disimpan!`);
         });
 
         loadPresetSelect.addEventListener('change', (e) => {
             const name = e.target.value;
-            if (!name) return;
+            if (!name) { 
+                updateUI(); // Hide delete button
+                return; 
+            }
 
             const settings = JSON.parse(localStorage.getItem(`visualizerPreset_${name}`));
-            if (!settings) return;
+            if (!settings) { updateUI(); return; }
 
             for (const id in settings) {
                 const el = document.getElementById(id);
                 if (el) {
                     if (el.type === 'checkbox') el.checked = settings[id];
                     else el.value = settings[id];
+                    // Trigger change to update UI logic (like barControls visibility)
                     el.dispatchEvent(new Event('change', { bubbles: true }));
                 }
             }
+            // Manually set text alignment properties
+            currentTextAlign = settings.currentTextAlign || 'center';
+            currentTextBaseline = settings.currentTextBaseline || 'bottom';
+
+            updateUI();
+            showCustomAlert(`Preset "${name}" dimuat.`);
+        });
+
+        deletePresetBtn.addEventListener('click', () => {
+            const name = loadPresetSelect.value;
+            if (!name) return;
+            
+            // Replaced window.confirm with internal logic to avoid blocking dialog
+            localStorage.removeItem(`visualizerPreset_${name}`);
+            populatePresets();
+            loadPresetSelect.value = '';
+            updateUI();
+            showCustomAlert(`Preset "${name}" berhasil dihapus.`);
         });
 
 
@@ -539,13 +651,23 @@
         };
 
         const startPlayback = () => {
+            // First time play attempt must call initAudioContext() for user interaction
+            initAudioContext(); 
+
             if (audioContext?.state === 'suspended') audioContext.resume();
-            if (useVideoAudio) videoElement.play();
+            
+            // Connect the appropriate source to the analyser before playing
+            if (useVideoAudio) {
+                videoElement.play();
+                try { audioSource.disconnect(analyser); videoSource.connect(analyser); } catch(e) {}
+            }
             else {
                 currentTrackIndex = 0;
                 playTrack(currentTrackIndex);
                 if (videoElement.src) videoElement.play();
+                try { videoSource.disconnect(analyser); audioSource.connect(analyser); } catch(e) {}
             }
+
             isPlaying = true;
             previewBtn.textContent = 'Hentikan Pratinjau';
             recordingControls.classList.remove('hidden');
@@ -579,6 +701,7 @@
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             if (mediaElement && (mediaElement.complete !== false || videoElement.readyState >= 2)) {
+                // Draw media element stretched to fill the 16:9 canvas size (1280x720)
                 ctx.drawImage(mediaElement, 0, 0, canvas.width, canvas.height);
             } else {
                  ctx.fillStyle = '#000';
@@ -631,14 +754,16 @@
             // Render Spectrum
             const spectrumStyle = spectrumType.value;
             if (spectrumStyle !== 'none') {
+                // Calculate spectrum bounding box relative to canvas size (1280x720)
                 const sWidth = (spectrumWidth.value / 100) * canvas.width;
                 const sHeight = (spectrumHeight.value / 100) * canvas.height;
-                const sX = (spectrumPosX.value / 100) * (canvas.width - sWidth);
-                const sY = (spectrumPosY.value / 100) * (canvas.height - sHeight);
-                
+                const sX = (spectrumPosX.value / 100) * canvas.width - sWidth / 2; // Center based on PosX
+                const sY = (spectrumPosY.value / 100) * canvas.height - sHeight / 2; // Center based on PosY
+
                 ctx.save();
                 ctx.translate(sX, sY);
                 
+                // Note: Linear gradient for vertical bars/lines (default)
                 const gradient = ctx.createLinearGradient(0, sHeight, 0, 0);
                 gradient.addColorStop(0, spectrumColor1.value);
                 gradient.addColorStop(1, spectrumColor2.value);
@@ -649,9 +774,14 @@
                     case 'bars': drawBars(sWidth, sHeight); break;
                     case 'bouncing-bars': drawBouncingBars(sWidth, sHeight); break;
                     case 'dj-disc': drawDjDisc(sWidth, sHeight); break;
-                    case 'wave': drawWave(sWidth, sHeight); break;
                     case 'circle-bars': drawCircleBars(sWidth, sHeight); break;
+                    case 'ring-spectrum': drawRingSpectrum(sWidth, sHeight); break; 
+                    case 'ncs-lines': drawNCSLines(sWidth, sHeight); break; 
+                    case 'wave-mesh': drawWaveMesh(sWidth, sHeight); break; 
+                    case 'wireframe-3d': drawWireframe3D(sWidth, sHeight); break; // NEW STYLE 1
+                    case 'frequency-mirror': drawFrequencyMirror(sWidth, sHeight); break; // NEW STYLE 2
                     case 'dual-lines': drawDualLines(sWidth, sHeight); break;
+                    case 'wave': drawWave(sWidth, sHeight); break;
                 }
                 ctx.restore();
             }
@@ -730,24 +860,26 @@
         };
         const drawWave = (width, height) => {
              ctx.lineWidth = 3;
+             ctx.lineCap = 'round';
             ctx.beginPath();
             const sliceWidth = width * 1.0 / bufferLength;
             let x = 0;
+            const centerY = height / 2; // Draw wave centered vertically in its box
             for (let i = 0; i < bufferLength; i++) {
-                const v = dataArray[i] / 128.0;
-                const y = v * (height / 2);
-                if (i === 0) ctx.moveTo(x, y);
+                // Scale value to half the height
+                const v = dataArray[i] / 255.0; 
+                const y = centerY + (v * centerY * 0.8 * Math.sin(x / width * Math.PI * 2)); // Use a slight sin wave modulation
+                if (i === 0) ctx.moveTo(x, centerY); // Start at center
                 else ctx.lineTo(x, y);
                 x += sliceWidth;
             }
-            ctx.lineTo(width, height / 2);
             ctx.stroke();
         };
         const drawCircleBars = (width, height) => {
             const numBars = parseInt(spectrumNumBars.value);
             const barThickness = parseInt(spectrumBarThickness.value);
             const centerX = width/2, centerY = height/2;
-            const radius = Math.min(width, height) * 0.2;
+            const radius = Math.min(width, height) * 0.3; // Increased radius slightly
             const maxBarHeight = Math.min(width, height) * 0.25;
             for(let i=0; i<numBars; i++){
                 const dataIndex = Math.floor(i * (bufferLength / numBars));
@@ -764,10 +896,338 @@
                 ctx.stroke();
             }
         };
+
+        const drawRingSpectrum = (width, height) => {
+            const numBars = parseInt(spectrumNumBars.value);
+            const barThickness = parseInt(spectrumBarThickness.value);
+            const centerX = width / 2;
+            const centerY = height / 2;
+            // Radius tengah statis
+            const innerRadius = Math.min(width, height) * 0.25; 
+            // Jarak maksimum batang dari cincin dalam
+            const maxExtension = Math.min(width, height) * 0.15;
+            const outerRadiusMax = innerRadius + maxExtension; 
+
+            // 1. Gambar Cincin Tengah Solid (Cincin Batas Dalam)
+            // Ini adalah area 'AUDIO VISUALIZER' di gambar Anda
+            ctx.save();
+            
+            // Gradien Radial untuk Cincin Batas
+            const boundaryGradient = ctx.createRadialGradient(
+                centerX, centerY, innerRadius * 0.98, // Mulai dari dalam sedikit
+                centerX, centerY, outerRadiusMax + 4 // Akhir di luar batas cincin
+            );
+            boundaryGradient.addColorStop(0, '#000000'); // Hitam di tengah
+            boundaryGradient.addColorStop(0.3, spectrumColor1.value);
+            boundaryGradient.addColorStop(1, spectrumColor2.value);
+
+
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, outerRadiusMax + 4, 0, Math.PI * 2);
+            ctx.strokeStyle = boundaryGradient;
+            ctx.lineWidth = 4;
+            ctx.stroke(); // Cincin luar (untuk batas)
+
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2);
+            ctx.strokeStyle = spectrumColor2.value; 
+            ctx.lineWidth = 4;
+            ctx.stroke(); // Cincin dalam (untuk batas)
+
+            // 2. Gambar Batang Radial (spektrum dinamis)
+            const angleStep = (Math.PI * 2) / numBars;
+            const barArcLength = angleStep * 0.8; // Membuat segmen batang sedikit terpisah
+
+            for (let i = 0; i < numBars; i++) {
+                const dataIndex = Math.floor(i * (bufferLength / numBars));
+                const barIntensity = dataArray[dataIndex] / 255;
+                const barLength = barIntensity * maxExtension;
+                
+                const startAngle = i * angleStep;
+                
+                // Gunakan gradien vertikal/radial di sepanjang batang
+                const barGradient = ctx.createLinearGradient(
+                    centerX, 0, centerX, centerY
+                );
+                barGradient.addColorStop(0, spectrumColor2.value);
+                barGradient.addColorStop(1, spectrumColor1.value);
+
+                ctx.strokeStyle = barGradient;
+                ctx.lineWidth = barThickness;
+                ctx.lineCap = 'butt'; // Garis yang datar
+
+                // Menggambar batang sebagai segmen busur melingkar (lebih padat)
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, innerRadius + barLength, startAngle, startAngle + barArcLength);
+                ctx.stroke();
+            }
+
+            // 3. Gambar Logo/Teks di Tengah (jika ada)
+            if (djLogoImage && djLogoImage.complete) {
+                // Menggambar logo dengan clipping
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, innerRadius * 0.9, 0, 2 * Math.PI);
+                ctx.clip();
+                const logoSize = innerRadius * 1.8;
+                ctx.drawImage(djLogoImage, centerX - logoSize / 2, centerY - logoSize / 2, logoSize, logoSize);
+                ctx.restore();
+            } else {
+                // Area teks statis
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                ctx.font = `bold ${innerRadius * 0.3}px Poppins`;
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillText("AUDIO", centerX, centerY - innerRadius * 0.1);
+
+                ctx.font = `${innerRadius * 0.15}px Poppins`;
+                ctx.fillStyle = '#D1D5DB';
+                ctx.fillText("VISUALIZER", centerX, centerY + innerRadius * 0.1);
+            }
+            
+            ctx.restore(); // Akhir drawRingSpectrum
+        };
+
+        
+        // --- VISUALIZER STYLE: Wireframe 3D ---
+        const drawWireframe3D = (width, height) => {
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const baseRadius = Math.min(width, height) * 0.4;
+            const numRings = 10; // Jumlah lingkaran pada sumbu Z
+            const numPointsPerRing = 100;
+            const ringSpeed = 0.01;
+            
+            // Pengaturan 3D Sederhana
+            const perspective = 0.002;
+            const zSpacing = baseRadius / numRings;
+
+            for (let r = 0; r < numRings; r++) {
+                const currentZ = (r - numRings / 2) * zSpacing;
+                
+                // Hitung faktor skala berdasarkan Z (mendekati = besar)
+                const scaleFactor = 1 / (1 + currentZ * perspective);
+                
+                // Kecilkan radius seiring ring bergerak ke belakang
+                const ringRadius = baseRadius * scaleFactor * (1 - r * 0.02);
+                
+                // Rotasi Cincin (sepanjang Z)
+                const currentAngleOffset = rotationAngle * ringSpeed * (numRings - r);
+
+                ctx.beginPath();
+                ctx.strokeStyle = spectrumColor1.value;
+                ctx.lineWidth = 1.5 * scaleFactor;
+                ctx.globalAlpha = 0.2 + (0.8 * scaleFactor);
+
+                for (let i = 0; i < numPointsPerRing; i++) {
+                    const dataIndex = Math.floor(i * (bufferLength / numPointsPerRing));
+                    const magnitude = dataArray[dataIndex] / 255.0;
+                    
+                    // Perturbasi radius berdasarkan audio
+                    const perturbation = magnitude * 20 * scaleFactor;
+                    const finalRadius = ringRadius + perturbation;
+
+                    const angle = (i / numPointsPerRing) * Math.PI * 2 + currentAngleOffset;
+                    
+                    const x = centerX + Math.cos(angle) * finalRadius;
+                    const y = centerY + Math.sin(angle) * finalRadius * 0.6; // Efek Ellipse untuk ilusi perspektif
+
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.stroke();
+            }
+            ctx.globalAlpha = 1.0;
+        }
+
+        // --- VISUALIZER STYLE: Frequency Mirror (Quad-Split) ---
+        const drawFrequencyMirror = (width, height) => {
+            ctx.save();
+            ctx.translate(width/2, height/2); // Pindah ke titik pusat box spektrum
+            
+            const numBars = parseInt(spectrumNumBars.value);
+            const barThickness = parseInt(spectrumBarThickness.value);
+            // Gunakan hanya kuartal pertama data frekuensi
+            const dataSubset = dataArray.slice(0, Math.floor(bufferLength / 4));
+            const totalBarsUsed = numBars / 4; 
+            const totalBarSpace = (width / 2) / totalBarsUsed;
+            
+            // 1. Kuadran Atas Kanan (Normal)
+            ctx.save();
+            ctx.fillStyle = spectrumColor1.value; 
+            for (let i = 0; i < totalBarsUsed; i++) {
+                const dataIndex = Math.floor(i * (dataSubset.length / totalBarsUsed));
+                const barHeight = (dataSubset[dataIndex] / 255.0) * (height / 2);
+                const barX = i * totalBarSpace;
+                // Gambar dari tengah ke kanan, dari tengah ke atas
+                ctx.fillRect(barX, 0, barThickness, -barHeight); 
+            }
+            ctx.restore();
+
+            // 2. Kuadran Atas Kiri (Mirror X)
+            ctx.save();
+            ctx.scale(-1, 1); // Cerminkan di sumbu X
+            ctx.fillStyle = spectrumColor2.value; 
+            for (let i = 0; i < totalBarsUsed; i++) {
+                const dataIndex = Math.floor(i * (dataSubset.length / totalBarsUsed));
+                const barHeight = (dataSubset[dataIndex] / 255.0) * (height / 2);
+                const barX = i * totalBarSpace;
+                ctx.fillRect(barX, 0, barThickness, -barHeight); 
+            }
+            ctx.restore();
+
+            // 3. Kuadran Bawah Kanan (Mirror Y)
+            ctx.save();
+            ctx.scale(1, -1); // Cerminkan di sumbu Y (dibanding Kuadran 1)
+            ctx.fillStyle = spectrumColor2.value;
+             for (let i = 0; i < totalBarsUsed; i++) {
+                const dataIndex = Math.floor(i * (dataSubset.length / totalBarsUsed));
+                const barHeight = (dataSubset[dataIndex] / 255.0) * (height / 2);
+                const barX = i * totalBarSpace;
+                ctx.fillRect(barX, 0, barThickness, -barHeight); 
+            }
+            ctx.restore();
+            
+            // 4. Kuadran Bawah Kiri (Mirror X dan Y)
+            ctx.save();
+            ctx.scale(-1, -1); // Cerminkan di kedua sumbu (dibanding Kuadran 1)
+            ctx.fillStyle = spectrumColor1.value;
+             for (let i = 0; i < totalBarsUsed; i++) {
+                const dataIndex = Math.floor(i * (dataSubset.length / totalBarsUsed));
+                const barHeight = (dataSubset[dataIndex] / 255.0) * (height / 2);
+                const barX = i * totalBarSpace;
+                ctx.fillRect(barX, 0, barThickness, -barHeight); 
+            }
+            ctx.restore();
+
+            ctx.restore(); // Restore back to original translation (outside sX, sY box)
+        };
+
+        // --- VISUALIZER STYLE: Wave Mesh (Original code) ---
+        const drawWaveMesh = (width, height) => {
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const baseRadius = Math.min(width, height) * 0.35;
+            const maxPerturbation = Math.min(width, height) * 0.15; 
+            const numPoints = 128; // Fewer points for mesh effect
+            
+            // Calculate a subset of data (only use the lower frequencies for smooth bass response)
+            const dataSubset = dataArray.slice(0, 512); 
+            const step = dataSubset.length / numPoints;
+            const points = [];
+
+            // 1. Calculate Distorted Points
+            for (let i = 0; i < numPoints; i++) {
+                const dataIndex = Math.floor(i * step);
+                const magnitude = dataSubset[dataIndex] / 255; // 0 to 1
+                
+                // Perturb the radius based on magnitude
+                // Also add a little sine wave perturbation based on time (rotationAngle) for constant movement
+                const timePerturbation = Math.sin(rotationAngle * 10 + i * 0.1) * 0.05;
+                const currentRadius = baseRadius + (magnitude * maxPerturbation) + (maxPerturbation * timePerturbation);
+                
+                const angle = (i / numPoints) * Math.PI * 2;
+                
+                const x = centerX + Math.cos(angle) * currentRadius;
+                const y = centerY + Math.sin(angle) * currentRadius;
+                
+                points.push({ x, y, magnitude });
+            }
+
+            // 2. Draw Connecting Lines (Wireframe/Mesh)
+            ctx.strokeStyle = spectrumColor1.value; 
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = 0.2;
+            ctx.beginPath();
+
+            for (let i = 0; i < numPoints; i++) {
+                const p = points[i];
+                const nextP = points[(i + 1) % numPoints];
+                
+                if (i === 0) ctx.moveTo(p.x, p.y);
+                else ctx.lineTo(p.x, p.y);
+            }
+            ctx.closePath();
+            ctx.stroke();
+            ctx.globalAlpha = 1.0;
+
+            // 3. Draw Dots/Nodes (Pulsating Glow)
+            for (const p of points) {
+                const alpha = 0.5 + p.magnitude * 0.5; // More intensity = brighter dot
+                ctx.globalAlpha = alpha;
+                
+                // Create radial gradient for the dots for a softer edge (using spectrumColor2 as the center)
+                const dotGradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 4);
+                dotGradient.addColorStop(0, spectrumColor2.value);
+                dotGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                
+                ctx.fillStyle = dotGradient;
+                ctx.beginPath();
+                // Dot size pulses with the magnitude
+                ctx.arc(p.x, p.y, 2 + p.magnitude * 2.5, 0, Math.PI * 2); 
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1.0;
+        };
+
+        // --- VISUALIZER STYLE: NCS Lines (Original code) ---
+        const drawNCSLines = (width, height) => {
+            const lineWidth = 3;
+            ctx.lineWidth = lineWidth;
+            ctx.lineCap = 'round';
+
+            // Use the frequency data for the wave amplitude
+            const dataSubset = dataArray.slice(0, 512); // Use half the frequency data for stability
+            const sliceWidth = width * 1.0 / dataSubset.length;
+            const centerY = height / 2;
+            const maxAmplitude = centerY * 0.9;
+
+            // Draw Top Line
+            ctx.beginPath();
+            let x = 0;
+            for (let i = 0; i < dataSubset.length; i++) {
+                // Scale value from 0-255 to 0-maxAmplitude
+                const amplitude = (dataSubset[i] / 255.0) * maxAmplitude; 
+                // Invert amplitude based on index/time to create a slight dynamic movement
+                const y = centerY - amplitude; 
+                
+                if (i === 0) ctx.moveTo(x, centerY);
+                else ctx.lineTo(x, y);
+                x += sliceWidth;
+            }
+            ctx.stroke();
+
+            // Draw Bottom Line (Symmetrical Inversion)
+            ctx.beginPath();
+            x = 0;
+            for (let i = 0; i < dataSubset.length; i++) {
+                const amplitude = (dataSubset[i] / 255.0) * maxAmplitude; 
+                const y = centerY + amplitude; // Mirrored on the bottom
+                
+                if (i === 0) ctx.moveTo(x, centerY);
+                else ctx.lineTo(x, y);
+                x += sliceWidth;
+            }
+            ctx.stroke();
+            
+            // Optional: Draw a thin central line
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, centerY);
+            ctx.lineTo(width, centerY);
+            ctx.stroke();
+        };
+
+        // --- DJ Disc Visualizer (Original code) ---
         const drawDjDisc = (width, height) => {
             const centerX = width/2, centerY = height/2;
             const discRadius = Math.min(width, height) / 2.5;
             const bass = (dataArray[1] + dataArray[2] + dataArray[3])/3;
+
+            // 1. Draw Rotating Vinyl Disc
             ctx.save();
             ctx.translate(centerX, centerY);
             ctx.rotate(rotationAngle);
@@ -777,17 +1237,21 @@
             ctx.fill();
             ctx.strokeStyle = '#333333';
             ctx.lineWidth = 1;
+            // Draw vinyl grooves
             for (let i = discRadius * 0.95; i > discRadius * 0.4; i -= 4) {
                  ctx.beginPath();
                  ctx.arc(0, 0, i, 0, 2 * Math.PI);
                  ctx.stroke();
             }
             ctx.restore();
+
+            // 2. Draw Pulsating Logo Label
             ctx.save();
             ctx.translate(centerX, centerY);
             const labelRadius = discRadius * 0.3;
             const pulse = (bass/255) * (discRadius * 0.1);
             if (djLogoImage && djLogoImage.complete) {
+                // Draw clipped image
                 ctx.save();
                 ctx.beginPath();
                 ctx.arc(0,0, labelRadius + pulse, 0, 2 * Math.PI);
@@ -796,6 +1260,7 @@
                 ctx.drawImage(djLogoImage, -logoSize/2, -logoSize/2, logoSize, logoSize);
                 ctx.restore();
             } else {
+                // Draw placeholder circle if no logo
                 ctx.beginPath();
                 ctx.arc(0,0,labelRadius + pulse, 0, 2*Math.PI);
                 ctx.fillStyle = spectrumColor1.value;
@@ -805,22 +1270,28 @@
         };
         const drawDualLines = (width, height) => {
              ctx.lineWidth = 3;
-            ctx.beginPath();
             const sliceWidth = width * 1.0 / bufferLength;
-            let x = 0;
             const centerY = height/2;
+            
+            // Draw top line
+            ctx.beginPath();
+            let x = 0;
             for (let i = 0; i < bufferLength; i++) {
-                const v = dataArray[i] / 128.0;
-                const y = centerY - (v * centerY / 2);
-                if (i === 0) ctx.moveTo(x, y);
+                const v = dataArray[i] / 255.0; // Max amplitude 1
+                const y = centerY - (v * centerY); // Line goes from center up to max height
+                if (i === 0) ctx.moveTo(x, centerY);
                 else ctx.lineTo(x, y);
                 x += sliceWidth;
             }
-            x=0;
+            ctx.stroke();
+
+            // Draw bottom line
+            ctx.beginPath();
+            x = 0;
             for (let i = 0; i < bufferLength; i++) {
-                const v = dataArray[i] / 128.0;
-                const y = centerY + (v * centerY / 2);
-                 if (i === 0) ctx.moveTo(x, y);
+                const v = dataArray[i] / 255.0;
+                const y = centerY + (v * centerY); // Line goes from center down to max height
+                if (i === 0) ctx.moveTo(x, centerY);
                 else ctx.lineTo(x, y);
                 x += sliceWidth;
             }
@@ -830,7 +1301,7 @@
             const opac = particleOpacity.value / 100;
             for (let i = 0; i < bufferLength; i++) {
                 const mag = dataArray[i] / 255;
-                if (mag > 0.6) {
+                if (mag > 0.6) { // Only draw particles for high energy frequencies
                     const x = Math.random() * w, y = Math.random() * h, r = mag * 5;
                     ctx.fillStyle = `rgba(255, 255, 255, ${opac * mag})`;
                     drawShape(x, y, r);
@@ -840,7 +1311,10 @@
         const drawParticleRain = (w, h) => {
             const avg = dataArray.reduce((a, v) => a + v, 0) / bufferLength, opac = particleOpacity.value / 100;
             particlesArray.forEach(p => {
-                p.y += p.speed;
+                // Increase speed based on audio energy (avg)
+                const audioSpeedBoost = (avg / 255) * 1.5;
+                p.y += p.speed + audioSpeedBoost;
+
                 if(p.y > h) { p.y = 0; p.x = Math.random() * w; }
                 const finalOpac = opac * Math.max(0, avg / 128 - 0.2);
                 ctx.fillStyle = `rgba(255, 255, 255, ${finalOpac})`;
@@ -849,35 +1323,53 @@
         }
         const drawSpinningGalaxy = (w, h) => {
             const cX = w / 2, cY = h / 2, opac = particleOpacity.value / 100;
+            const avg = dataArray.reduce((a, v) => a + v, 0) / bufferLength;
+
             particlesArray.forEach((p, i) => {
-                p.angle += p.speed;
-                const mag = dataArray[i % bufferLength] / 255.0, r = p.radius + mag * 50;
+                // Speed up rotation based on bass energy
+                const bass = (dataArray[1] + dataArray[2] + dataArray[3])/3 / 255;
+                p.angle += p.speed + (bass * 0.03); 
+
+                const mag = dataArray[i % bufferLength] / 255.0;
+                const r = p.radius + mag * 50;
                 const x = cX + Math.cos(p.angle) * r, y = cY + Math.sin(p.angle) * r;
-                const finalOpac = opac * mag;
+                const finalOpac = opac * mag * 0.5; // Base opacity lower for galaxy effect
                 ctx.fillStyle = `rgba(255, 255, 255, ${finalOpac})`;
                 drawShape(x, y, p.size);
             });
         };
 
         // --- Logika Perekaman ---
+        // Note: The original recording logic using MediaStream Destination is mostly correct.
+        // I've ensured startPlayback runs initAudioContext before recording starts.
         const startRecording = () => {
-            const activeSource = useVideoAudio ? videoSource : audioSource;
-            if (!activeSource) return;
+            const activeMedia = useVideoAudio ? videoElement : audioElement;
+            // Ensure audio context is connected to the analyser first
+            initAudioContext();
+            
+            // Connect to a new destination node to capture the audio stream
+            const audioDestination = audioContext.createMediaStreamDestination();
+            analyser.connect(audioDestination);
+            
             recordedChunks = [];
-            const canvasStream = canvas.captureStream(30); // FPS set to 30
-            const audioStreamDestination = audioContext.createMediaStreamDestination();
-            activeSource.connect(audioStreamDestination);
-            const audioStream = audioStreamDestination.stream;
-            const combinedStream = new MediaStream([...canvasStream.getVideoTracks(), ...audioStream.getAudioTracks()]);
+            const canvasStream = canvas.captureStream(30); // 30 FPS
+            const combinedStream = new MediaStream([...canvasStream.getVideoTracks(), ...audioDestination.stream.getAudioTracks()]);
+            
             const options = { 
                 mimeType: 'video/webm; codecs=vp9,opus',
-                videoBitsPerSecond: 5000000 // Bitrate set to 5Mbps
+                videoBitsPerSecond: 5000000 
             };
+            
             try { mediaRecorder = new MediaRecorder(combinedStream, options); }
             catch (e) { status.textContent = 'Error: Browser tidak mendukung format rekaman.'; status.classList.remove('hidden'); return; }
+            
             mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
             mediaRecorder.onstop = () => {
-                stopPlayback();
+                // Ensure the analyzer connects back to the speakers/destination after recording stops
+                analyser.disconnect(audioDestination);
+                analyser.connect(audioContext.destination);
+
+                stopPlayback(); // Stop visualizer and reset audio/video time
                 const blob = new Blob(recordedChunks, { type: 'video/webm' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -887,18 +1379,23 @@
                 status.textContent = 'Video berhasil diunduh!'; recordBtn.textContent = 'Mulai Rekam & Ekspor Video';
                 setTimeout(() => { status.classList.add('hidden')}, 4000);
             };
-            const mediaToPlay = useVideoAudio ? videoElement : audioElement;
-            mediaToPlay.onended = () => { if (useVideoAudio && mediaRecorder?.state === 'recording') stopRecording(); };
+
+            // Set up stop logic if the media ends naturally
+            activeMedia.onended = () => { if (mediaRecorder?.state === 'recording') stopRecording(); };
+            
             mediaRecorder.start();
             startPlayback();
             status.textContent = 'Merekam... Video akan diunduh saat audio selesai.';
             status.classList.remove('hidden');
             recordBtn.textContent = 'Berhenti Merekam';
         };
-        const stopRecording = () => { if(mediaRecorder) mediaRecorder.stop(); };
+        const stopRecording = () => { 
+            if(mediaRecorder) mediaRecorder.stop(); 
+        };
         
-        // --- Inisialisasi ---
+        // --- Inisialisasi Akhir ---
         populatePresets();
+        resizeCanvas(); // Initial canvas resize
         ['spectrumType', 'particleType', 'bloomEffect'].forEach(id => document.getElementById(id).dispatchEvent(new Event('change')));
         drawBackground();
         updateUI();
@@ -906,4 +1403,3 @@
     </script>
 </body>
 </html>
-
