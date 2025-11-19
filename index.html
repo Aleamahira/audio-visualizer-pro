@@ -128,7 +128,7 @@
             
             <!-- Overlay Status -->
             <div id="overlayStatus" class="absolute top-4 left-4 bg-black/70 backdrop-blur-sm px-4 py-2 rounded-full text-xs font-mono text-indigo-300 hidden border border-indigo-500/30">
-                <span class="loader"></span> Processing...
+                <span class="loader"></span> Processing (Background Mode Active)...
             </div>
         </div>
 
@@ -180,10 +180,10 @@
                             <label class="block text-xs text-slate-400 mb-1">Visual Style</label>
                             <select id="spectrumType" class="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-md p-2 focus:ring-2 focus:ring-indigo-500 outline-none">
                                 <option value="bars">Classic Bars</option>
-                                <option value="digital-eq">Digital EQ (Retro)</option> <!-- New -->
+                                <option value="digital-eq">Digital EQ (Retro)</option> 
                                 <option value="classic-circle">Classic Round Bars</option>
-                                <option value="eclipse">Eclipse Aura (New)</option> <!-- New -->
-                                <option value="spiral-wave">Spiral Wave (New)</option> <!-- New -->
+                                <option value="eclipse">Eclipse Aura</option> 
+                                <option value="spiral-wave">Spiral Wave</option> 
                                 <option value="hexagon">Hexagon Pulse</option>
                                 <option value="seismic">Seismic Wave</option>
                                 <option value="bouncing-bars">Bouncing Bars</option>
@@ -344,7 +344,7 @@
                         <button id="recordBtn" class="w-full bg-rose-600 hover:bg-rose-500 text-white py-2 rounded-md font-bold text-sm shadow-lg shadow-rose-900/20 flex justify-center items-center gap-2">
                             <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div> Start Recording (WebM)
                         </button>
-                        <p class="text-[10px] text-slate-500 text-center mt-2">Audio restarts automatically. Video downloads when song ends.</p>
+                        <p class="text-[10px] text-slate-500 text-center mt-2">Recording runs in background mode. Switch tabs without lag.</p>
                     </div>
                 </div>
 
@@ -359,6 +359,24 @@
     </div>
 
     <script>
+    // Define Worker Script for Background Timer
+    const workerCode = `
+        let intervalId = null;
+        self.onmessage = function(e) {
+            if (e.data.command === 'start') {
+                if (intervalId) clearInterval(intervalId);
+                const fps = e.data.fps || 30;
+                const interval = 1000 / fps;
+                intervalId = setInterval(() => {
+                    self.postMessage({ command: 'tick' });
+                }, interval);
+            } else if (e.data.command === 'stop') {
+                if (intervalId) clearInterval(intervalId);
+                intervalId = null;
+            }
+        };
+    `;
+
     window.addEventListener('DOMContentLoaded', () => {
         
         // --- DOM Elements ---
@@ -405,8 +423,12 @@
             overlayStatus: document.getElementById('overlayStatus')
         };
 
-        const ctx = elements.canvas.getContext('2d', { alpha: false }); // Optimize for no transparency on main canvas
+        const ctx = elements.canvas.getContext('2d', { alpha: false }); // Optimize for no transparency
         
+        // Initialize Worker
+        const blob = new Blob([workerCode], { type: 'application/javascript' });
+        const worker = new Worker(URL.createObjectURL(blob));
+
         // --- App State ---
         let state = {
             audioCtx: null,
@@ -416,6 +438,7 @@
             dataArray: null,
             bufferLength: 0,
             isPlaying: false,
+            isRecording: false,
             frameId: null,
             mediaRecorder: null,
             chunks: [],
@@ -432,6 +455,14 @@
             targetRatio: 16/9
         };
 
+        // Worker Listener (The heartbeat for recording)
+        worker.onmessage = function(e) {
+            if (e.data.command === 'tick' && state.isRecording) {
+                // Manually trigger render without waiting for requestAnimationFrame
+                render(true); 
+            }
+        };
+
         // --- Utilities ---
         const showAlert = (msg, type = 'success') => {
             const bg = type === 'error' ? 'bg-rose-600' : 'bg-emerald-600';
@@ -446,7 +477,6 @@
             // Internal resolution
             elements.canvas.width = 1920; 
             elements.canvas.height = 1080;
-            // CSS handles the display size, maintain aspect ratio via internal draw
             if(!state.isPlaying) drawStaticScene();
         };
 
@@ -459,11 +489,9 @@
                 state.bufferLength = state.analyser.frequencyBinCount;
                 state.dataArray = new Uint8Array(state.bufferLength);
                 
-                // Create nodes
                 state.sourceNode = state.audioCtx.createMediaElementSource(elements.audio);
                 state.videoNode = state.audioCtx.createMediaElementSource(elements.video);
                 
-                // Connect analyser to speakers by default
                 state.analyser.connect(state.audioCtx.destination);
             }
             if (state.audioCtx.state === 'suspended') {
@@ -475,7 +503,7 @@
             try {
                 if (state.sourceNode) state.sourceNode.disconnect();
                 if (state.videoNode) state.videoNode.disconnect();
-            } catch(e) { /* Ignore disconnect errors if not connected */ }
+            } catch(e) {}
 
             if (isVideo) {
                 state.videoNode.connect(state.analyser);
@@ -485,11 +513,21 @@
         };
 
         // --- Visualizer Core ---
-        const render = () => {
+        // 'manual' param: if true, we are called by Worker (recording mode), so don't request next AF
+        const render = (manual = false) => {
             if (!state.isPlaying) return;
-            state.frameId = requestAnimationFrame(render);
+            
+            // If not recording (or if manual trigger), request next frame for smooth preview
+            // But if recording, we rely on Worker mostly, but keeping rAF ensures preview stays smooth too
+            // To avoid double rendering, we can just let them coexist or throttle.
+            // Simple logic: Always use rAF for preview. Worker forces extra frames during recording for stream.
+            if (!manual) {
+                state.frameId = requestAnimationFrame(() => render(false));
+            }
             
             state.analyser.getByteFrequencyData(state.dataArray);
+            
+            // Use time-based rotation increment to be consistent across different call rates
             state.rotation += 0.005;
 
             const w = elements.canvas.width;
@@ -499,20 +537,16 @@
             ctx.fillStyle = '#000';
             ctx.fillRect(0, 0, w, h);
 
-            // Draw Background
             drawBackground(w, h);
 
-            // Draw Visuals
             ctx.save();
             if(elements.bloom.checked) {
                 ctx.shadowBlur = parseInt(elements.bloomInt.value);
                 ctx.shadowColor = elements.spectrumColor1.value;
             }
-            
             drawSpectrum(w, h);
             ctx.restore();
 
-            // Draw Particles
             ctx.save();
             if(elements.bloom.checked) {
                  ctx.shadowBlur = parseInt(elements.bloomInt.value) / 2;
@@ -521,7 +555,6 @@
             drawParticles(w, h);
             ctx.restore();
 
-            // Draw Text
             drawText(w, h);
         };
 
@@ -534,10 +567,9 @@
 
         const drawBackground = (w, h) => {
             ctx.save();
-            // Pulse Effect (Increased strength as requested)
             if (elements.bgPulse.checked && state.isPlaying && state.dataArray) {
                 const bass = (state.dataArray[1] + state.dataArray[2] + state.dataArray[3]) / 3;
-                const scale = 1 + (bass / 255) * 0.06; // Increased from 0.02 to 0.06
+                const scale = 1 + (bass / 255) * 0.06; 
                 ctx.translate(w / 2, h / 2);
                 ctx.scale(scale, scale);
                 ctx.translate(-w / 2, -h / 2);
@@ -546,7 +578,6 @@
             if (state.useVideoAudio && elements.video.readyState >= 2) {
                 ctx.drawImage(elements.video, 0, 0, w, h);
             } else if (state.bgImage) {
-                // Cover fit for image
                 const scale = Math.max(w / state.bgImage.width, h / state.bgImage.height);
                 const x = (w / 2) - (state.bgImage.width / 2) * scale;
                 const y = (h / 2) - (state.bgImage.height / 2) * scale;
@@ -556,7 +587,6 @@
                 ctx.fillRect(0,0,w,h);
             }
             
-            // Darken overlay for better visibility
             ctx.fillStyle = 'rgba(0,0,0,0.3)';
             ctx.fillRect(0,0,w,h);
             ctx.restore();
@@ -591,7 +621,6 @@
             ctx.restore();
         };
 
-        // Helper to draw Center Logo
         const drawCenterLogo = (rad) => {
             if(state.djLogo) {
                 ctx.save();
@@ -603,7 +632,6 @@
             }
         };
 
-        // --- Visualizer Strategies ---
         const drawSpectrum = (w, h) => {
             const type = elements.spectrumType.value;
             if(type === 'none') return;
@@ -613,11 +641,9 @@
             const scaleX = elements.specWidth.value / 100;
             const scaleY = elements.specHeight.value / 100;
             
-            // Center calculations
             const cx = (elements.specPosX.value / 100) * w;
             const cy = (elements.specPosY.value / 100) * h;
 
-            // Gradient
             const grad = ctx.createLinearGradient(0, h, 0, 0);
             grad.addColorStop(0, elements.spectrumColor1.value);
             grad.addColorStop(1, elements.spectrumColor2.value);
@@ -630,7 +656,7 @@
             switch(type) {
                 case 'bars': {
                     const width = w * scaleX;
-                    ctx.translate(-width/2, (h * scaleY)/2); // Align bottom
+                    ctx.translate(-width/2, (h * scaleY)/2); 
                     const gap = width / numBars;
                     for(let i=0; i<numBars; i++) {
                         const idx = Math.floor(i * (state.bufferLength/numBars));
@@ -648,13 +674,10 @@
                     for(let i=0; i<numBars; i++) {
                          const idx = Math.floor(i * (state.bufferLength/numBars));
                          const val = (state.dataArray[idx]/255) * maxHeight;
-                         
-                         // Draw blocks instead of continuous rect
-                         const blockHeight = thickness * 1.5; // Square-ish blocks
-                         const numBlocks = Math.floor(val / (blockHeight + 2)); // +2 for gap
+                         const blockHeight = thickness * 1.5; 
+                         const numBlocks = Math.floor(val / (blockHeight + 2)); 
                          
                          for(let j=0; j<numBlocks; j++) {
-                             // Determine color based on height (Green -> Yellow -> Red simulation using opacity/gradient)
                              ctx.globalAlpha = 0.5 + (j/numBlocks)*0.5;
                              ctx.fillRect(i*gap, -(j*(blockHeight+2)), thickness, -blockHeight);
                          }
@@ -666,13 +689,11 @@
                     const radius = Math.min(w, h) * 0.25 * scaleY;
                     const maxBarH = (Math.min(w, h) * 0.25) * scaleY;
                     
-                    // Draw inner circle line base
                     ctx.beginPath();
                     ctx.arc(0, 0, radius - 4, 0, Math.PI*2);
                     ctx.lineWidth = 2;
                     ctx.stroke();
                     
-                    // Draw Logo if exists
                     drawCenterLogo(radius - 6);
 
                     for(let i=0; i<numBars; i++) {
@@ -693,7 +714,6 @@
                     const bass = state.dataArray[5]/255;
                     const pulseRad = rad * (1 + bass*0.1);
                     
-                    // Draw spectrum behind
                     for(let i=0; i<numBars; i++) {
                         const idx = Math.floor(i*(state.bufferLength/numBars));
                         const val = (state.dataArray[idx]/255) * maxExt;
@@ -701,17 +721,15 @@
                         
                         ctx.save();
                         ctx.rotate(ang);
-                        ctx.fillRect(rad*0.8, -thickness/2, val + rad*0.5, thickness); // Start slightly inside
+                        ctx.fillRect(rad*0.8, -thickness/2, val + rad*0.5, thickness); 
                         ctx.restore();
                     }
                     
-                    // Draw Eclipse Circle
                     ctx.beginPath();
                     ctx.arc(0, 0, pulseRad, 0, Math.PI*2);
                     ctx.fillStyle = '#000';
                     ctx.fill();
                     
-                    // Glow ring around eclipse
                     ctx.beginPath();
                     ctx.arc(0, 0, pulseRad, 0, Math.PI*2);
                     ctx.lineWidth = 2;
@@ -719,7 +737,7 @@
                     ctx.shadowColor = elements.spectrumColor1.value;
                     ctx.shadowBlur = 20 * bass;
                     ctx.stroke();
-                    ctx.shadowBlur = 0; // reset
+                    ctx.shadowBlur = 0; 
                     
                     drawCenterLogo(pulseRad * 0.9);
                     break;
@@ -727,7 +745,7 @@
                 case 'spiral-wave': {
                      const maxRad = Math.min(w,h) * 0.45 * scaleY;
                      const coils = 4;
-                     const points = numBars * 2; // More resolution
+                     const points = numBars * 2; 
                      
                      ctx.beginPath();
                      ctx.lineWidth = thickness/2;
@@ -736,13 +754,10 @@
                      for(let i=0; i<points; i++) {
                          const idx = Math.floor(i * (state.bufferLength/points));
                          const val = (state.dataArray[idx]/255) * 50;
-                         
                          const angle = (i / points) * Math.PI * 2 * coils + state.rotation;
                          const radius = (i / points) * maxRad + val;
-                         
                          const x = Math.cos(angle) * radius;
                          const y = Math.sin(angle) * radius;
-                         
                          i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
                      }
                      ctx.stroke();
@@ -752,8 +767,6 @@
                      const rad = Math.min(w,h) * 0.25 * scaleY;
                      const maxExt = rad * 0.6;
                      const sides = 6;
-                     
-                     // Pulse Center
                      const bass = state.dataArray[4]/255;
                      const centerRad = rad * (0.8 + bass * 0.2);
                      
@@ -770,12 +783,10 @@
                      
                      drawCenterLogo(centerRad * 0.9);
                      
-                     // Outer Bars (Hex)
                      for(let i=0; i<numBars; i++) {
                          const idx = Math.floor(i*(state.bufferLength/numBars));
                          const val = (state.dataArray[idx]/255) * maxExt;
                          const ang = (i/numBars) * Math.PI * 2 + state.rotation;
-                         
                          const startX = (rad+10) * Math.cos(ang);
                          const startY = (rad+10) * Math.sin(ang);
                          const endX = (rad+10+val) * Math.cos(ang);
@@ -797,7 +808,6 @@
                     ctx.beginPath();
                     ctx.moveTo(-width/2, 0);
                     
-                    // Top Wave
                     for(let i=0; i<numBars; i++) {
                         const idx = Math.floor(i * (state.bufferLength/numBars));
                         const val = (state.dataArray[idx]/255) * (height/2);
@@ -806,7 +816,6 @@
                     }
                     ctx.lineTo(width/2, 0);
                     
-                    // Bottom Wave (Mirror)
                     for(let i=numBars-1; i>=0; i--) {
                         const idx = Math.floor(i * (state.bufferLength/numBars));
                         const val = (state.dataArray[idx]/255) * (height/2);
@@ -828,8 +837,6 @@
                         const idx = Math.floor(i * (state.bufferLength/numBars));
                         const val = (state.dataArray[idx]/255) * h * scaleY;
                         ctx.fillRect(i * gap, 0, thickness, -val);
-                        
-                        // Ball physics
                         if(val > state.ballHeights[i]) state.ballHeights[i] = val;
                         else state.ballHeights[i] = Math.max(0, state.ballHeights[i] - 2);
                         
@@ -846,7 +853,6 @@
                         const idx = Math.floor(i*(state.bufferLength/numBars));
                         const val = (state.dataArray[idx]/255) * 100;
                         const ang = (i/numBars) * Math.PI * 2;
-                        
                         ctx.save();
                         ctx.rotate(ang);
                         ctx.fillRect(rad, -thickness/2, val, thickness);
@@ -857,17 +863,11 @@
                 case 'dj-disc': {
                     const rad = Math.min(w,h) * 0.3 * scaleY;
                     ctx.rotate(state.rotation);
-                    
-                    // Disc Body
                     ctx.beginPath(); ctx.arc(0,0,rad,0,Math.PI*2); ctx.fillStyle='#111'; ctx.fill();
                     ctx.strokeStyle='#333'; ctx.lineWidth=2; 
                     for(let r=rad*0.3; r<rad*0.95; r+=5) { ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.stroke(); }
-                    
-                    // Beat Pulse Label
                     const bass = state.dataArray[10]/255;
                     const labelRad = rad*0.35 + (bass * 20);
-                    
-                    // Use drawCenterLogo logic manually here because of pulse effect
                     ctx.save();
                     ctx.beginPath(); ctx.arc(0,0,labelRad,0,Math.PI*2); ctx.clip();
                     if(state.djLogo) ctx.drawImage(state.djLogo, -labelRad, -labelRad, labelRad*2, labelRad*2);
@@ -878,16 +878,12 @@
                 case 'ring-spectrum': {
                     const rad = Math.min(w,h) * 0.25 * scaleY;
                     const maxExt = rad * 0.5;
-                    
                     drawCenterLogo(rad - 10);
-                    
                     ctx.beginPath(); ctx.arc(0,0, rad, 0, Math.PI*2); 
                     ctx.strokeStyle = elements.spectrumColor2.value; ctx.lineWidth=4; ctx.stroke();
-                    
                     const angleStep = (Math.PI*2)/numBars;
                     ctx.lineCap = 'round';
                     ctx.lineWidth = thickness;
-                    
                     for(let i=0; i<numBars; i++) {
                          const idx = Math.floor(i * (state.bufferLength/numBars));
                          const len = (state.dataArray[idx]/255) * maxExt;
@@ -905,7 +901,6 @@
                     const maxAmp = (h * scaleY) * 0.4;
                     const subset = state.dataArray.slice(0, 100); // Focus low end
                     const slice = width / subset.length;
-                    
                     ctx.beginPath();
                     for(let i=0; i<subset.length; i++) {
                         const x = (i * slice) - width/2;
@@ -913,8 +908,6 @@
                         i===0 ? ctx.moveTo(x, -y) : ctx.lineTo(x, -y);
                     }
                     ctx.stroke();
-                    
-                    // Mirror bottom
                     ctx.beginPath();
                     for(let i=0; i<subset.length; i++) {
                          const x = (i * slice) - width/2;
@@ -922,8 +915,6 @@
                          i===0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
                     }
                     ctx.stroke();
-                    
-                    // Center line
                     ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255,255,255,0.5)';
                     ctx.beginPath(); ctx.moveTo(-width/2, 0); ctx.lineTo(width/2, 0); ctx.stroke();
                     break;
@@ -932,22 +923,18 @@
                     const rings = 8;
                     const pts = 40;
                     const baseRad = Math.min(w,h) * 0.3 * scaleY;
-                    
                     for(let r=0; r<rings; r++) {
                         const z = (r - rings/2) * 50;
                         const scale = 1 / (1 + (z * 0.002));
                         const ringRad = baseRad * scale;
                         const rot = state.rotation * (rings-r) * 0.5;
-                        
                         ctx.beginPath();
                         ctx.globalAlpha = 0.3 + (0.7 * scale);
                         ctx.lineWidth = 2 * scale;
-                        
                         for(let i=0; i<=pts; i++) {
                             const idx = Math.floor(i * (100/pts)); // Use first 100 bins
                             const mag = (state.dataArray[idx]/255) * 30 * scale;
                             const ang = (i/pts) * Math.PI * 2 + rot;
-                            
                             const rx = Math.cos(ang) * (ringRad + mag);
                             const ry = Math.sin(ang) * (ringRad + mag);
                             i===0 ? ctx.moveTo(rx, ry) : ctx.lineTo(rx, ry);
@@ -964,7 +951,6 @@
                     const quarterBars = Math.floor(numBars/4);
                     const step = halfW / quarterBars;
                     const maxHeight = (h * scaleY) * 0.5;
-                    
                     const drawQuad = (mx, my) => {
                         ctx.save();
                         ctx.scale(mx, my);
@@ -976,18 +962,16 @@
                         }
                         ctx.restore();
                     }
-                    
-                    drawQuad(1, 1);   // Bottom Right
-                    drawQuad(-1, 1);  // Bottom Left
-                    drawQuad(1, -1);  // Top Right
-                    drawQuad(-1, -1); // Top Left
+                    drawQuad(1, 1);   
+                    drawQuad(-1, 1);  
+                    drawQuad(1, -1);  
+                    drawQuad(-1, -1); 
                     break;
                 }
                 case 'wave-mesh': {
                     const rad = Math.min(w,h) * 0.3 * scaleY;
                     const pts = 60;
                     const subset = state.dataArray.slice(0, pts);
-                    
                     ctx.beginPath();
                     for(let i=0; i<pts; i++) {
                         const mag = (subset[i]/255) * 50;
@@ -996,8 +980,6 @@
                         const x = Math.cos(ang) * r;
                         const y = Math.sin(ang) * r;
                         i===0? ctx.moveTo(x,y) : ctx.lineTo(x,y);
-                        
-                        // Dots
                         ctx.save();
                         ctx.fillStyle = elements.spectrumColor2.value;
                         ctx.beginPath(); ctx.arc(x,y, 3, 0, Math.PI*2); ctx.fill();
@@ -1012,7 +994,6 @@
                      const maxH = (h * scaleY) * 0.4;
                      const slice = width / state.bufferLength;
                      ctx.lineWidth=2;
-                     
                      ctx.beginPath();
                      for(let i=0; i<state.bufferLength; i++) {
                          const y = -(state.dataArray[i]/255)*maxH;
@@ -1020,7 +1001,6 @@
                          i===0? ctx.moveTo(x,0) : ctx.lineTo(x,y);
                      }
                      ctx.stroke();
-                     
                      ctx.beginPath();
                      for(let i=0; i<state.bufferLength; i++) {
                          const y = (state.dataArray[i]/255)*maxH;
@@ -1035,7 +1015,6 @@
                      ctx.lineWidth=3;
                      const slice = width / state.bufferLength;
                      ctx.translate(-width/2, 0);
-                     
                      ctx.beginPath();
                      for(let i=0; i<state.bufferLength; i++) {
                          const v = state.dataArray[i] / 128.0;
@@ -1050,7 +1029,6 @@
             ctx.restore();
         };
 
-        // --- Particle System ---
         const initParticles = (w, h) => {
             state.particles = [];
             const count = 50;
@@ -1074,12 +1052,10 @@
             const avg = state.dataArray ? state.dataArray.reduce((a,b)=>a+b,0)/state.bufferLength : 0;
             const energy = avg / 255;
 
-            // Init if empty
             if(state.particles.length === 0) initParticles(w, h);
 
             state.particles.forEach((p, i) => {
                 ctx.save();
-                // Make particles more visible (added 0.2 base opacity)
                 ctx.fillStyle = `rgba(255,255,255,${Math.min(1, opacity * (0.2 + energy * 1.5))})`;
                 
                 if(type === 'particle-rain') {
@@ -1097,7 +1073,6 @@
                 else { // Floating
                     const idx = Math.floor(i * (state.bufferLength/state.particles.length));
                     const mag = state.dataArray ? state.dataArray[idx]/255 : 0;
-                    // Pulse size with audio
                     const pulsatedSize = p.size * (1 + mag);
                     drawShape(p.x, p.y, pulsatedSize);
                 }
@@ -1114,8 +1089,6 @@
             ctx.fill();
         };
 
-
-        // --- Logic Integration ---
         const updateUI = () => {
             const hasMedia = (elements.bgInput.files.length || state.bgImage || elements.video.src) && 
                              (elements.audioInput.files.length || state.useVideoAudio);
@@ -1130,7 +1103,6 @@
             const isPart = elements.particleType.value !== 'none';
             elements.particleControls.style.display = isPart ? 'grid' : 'none';
             
-            // Update Delete Button Visibility
             elements.delPreset.classList.toggle('hidden', !elements.loadPreset.value);
         };
 
@@ -1145,7 +1117,6 @@
                 elements.video.src = url;
                 elements.video.classList.remove('hidden');
                 elements.video.onloadedmetadata = () => {
-                    // Check for audio track
                     const hasAudio = elements.video.mozHasAudio || 
                                    Boolean(elements.video.webkitAudioDecodedByteCount) || 
                                    Boolean(elements.video.audioTracks && elements.video.audioTracks.length);
@@ -1211,14 +1182,19 @@
             } else {
                 connectSource(false);
                 elements.audio.play();
-                if(elements.video.src) elements.video.play(); // Play mute bg video
+                if(elements.video.src) elements.video.play(); 
             }
             render();
         };
 
         const stopPlayback = () => {
             state.isPlaying = false;
+            state.isRecording = false;
             cancelAnimationFrame(state.frameId);
+            
+            // Stop the worker timer
+            worker.postMessage({ command: 'stop' });
+            
             elements.audio.pause();
             elements.video.pause();
             elements.audio.currentTime = 0;
@@ -1226,27 +1202,34 @@
             drawStaticScene();
         };
         
-        // Audio end handling
         elements.audio.onended = () => {
             if(state.mediaRecorder && state.mediaRecorder.state === 'recording') {
                  stopRecording();
             } else {
                 stopPlayback();
-                elements.previewBtn.click(); // Toggle button state
+                elements.previewBtn.click(); 
+            }
+        };
+        
+        // Logic for video (bg) ending
+        elements.video.onended = () => {
+             if(state.mediaRecorder && state.mediaRecorder.state === 'recording') {
+                 stopRecording();
             }
         };
 
         // --- Recording Logic ---
         const startRecording = () => {
-            // Reset to start for auto-recording from 0:00
+            // Stop playback first to reset safely
             if (state.isPlaying) stopPlayback(); 
+            
+            // Reset time to 0
             elements.audio.currentTime = 0;
             elements.video.currentTime = 0;
-
-            // Capture visual stream
-            const canvasStream = elements.canvas.captureStream(30);
             
-            // Capture audio stream
+            state.isRecording = true;
+
+            const canvasStream = elements.canvas.captureStream(30);
             const dest = state.audioCtx.createMediaStreamDestination();
             state.analyser.connect(dest);
             
@@ -1266,24 +1249,31 @@
             state.chunks = [];
             state.mediaRecorder.ondataavailable = e => { if(e.data.size > 0) state.chunks.push(e.data); };
             state.mediaRecorder.onstop = () => {
-                state.analyser.disconnect(dest); // Clean up
+                state.analyser.disconnect(dest); 
                 const blob = new Blob(state.chunks, { type: 'video/webm' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
                 a.download = `visualizer-${Date.now()}.webm`;
                 a.click();
+                
+                // Stop worker loop
+                worker.postMessage({ command: 'stop' });
+                state.isRecording = false;
                 elements.overlayStatus.classList.add('hidden');
                 showAlert("Video Exported Successfully!");
                 stopPlayback();
-                elements.previewBtn.click(); // Reset UI
+                elements.previewBtn.click(); 
             };
             
             state.mediaRecorder.start();
+            
+            // Start the background worker timer
+            worker.postMessage({ command: 'start', fps: 30 });
+
             elements.overlayStatus.classList.remove('hidden');
             elements.recordBtn.innerHTML = `<span class="animate-pulse text-red-300">Recording... Click to Stop</span>`;
 
-            // Start playback immediately after recorder starts
             startPlayback(); 
         };
         
@@ -1297,14 +1287,6 @@
             else startRecording();
         });
 
-        // Add video end handling for auto-stop recording when video finishes
-        elements.video.onended = () => {
-             if(state.mediaRecorder && state.mediaRecorder.state === 'recording') {
-                 stopRecording();
-            }
-        };
-
-        // --- Preset Logic ---
         const loadPresets = () => {
             elements.loadPreset.innerHTML = '<option value="">Load Preset...</option>';
             for(let i=0; i<localStorage.length; i++) {
@@ -1321,7 +1303,6 @@
         elements.savePreset.addEventListener('click', () => {
             const name = elements.presetName.value.trim();
             if(!name) return showAlert("Enter a preset name", "error");
-            
             const data = {};
             document.querySelectorAll('input, select').forEach(el => {
                 if(el.type !== 'file' && el.id) {
@@ -1331,7 +1312,6 @@
             data.textAlign = state.textAlign;
             data.textBaseline = state.textBaseline;
             data.posActive = document.querySelector('.preset-btn.active')?.dataset.pos;
-            
             localStorage.setItem(`vizPreset_${name}`, JSON.stringify(data));
             loadPresets();
             showAlert("Preset Saved");
@@ -1339,10 +1319,7 @@
 
         elements.loadPreset.addEventListener('change', (e) => {
             const name = e.target.value;
-            if(!name) {
-                updateUI();
-                return;
-            }
+            if(!name) { updateUI(); return; }
             const data = JSON.parse(localStorage.getItem(`vizPreset_${name}`));
             if(data) {
                 Object.keys(data).forEach(k => {
@@ -1350,7 +1327,7 @@
                     if(el) {
                         if(el.type === 'checkbox') el.checked = data[k];
                         else el.value = data[k];
-                        el.dispatchEvent(new Event('input')); // Trigger live updates
+                        el.dispatchEvent(new Event('input'));
                         el.dispatchEvent(new Event('change'));
                     }
                 });
@@ -1374,14 +1351,10 @@
             showAlert(`Deleted preset: ${name}`, "error");
         });
 
-        // --- UI Listeners ---
-        // Bloom Toggle
         elements.bloom.addEventListener('change', (e) => {
             elements.bloomContainer.style.display = e.target.checked ? 'block' : 'none';
         });
 
-        // Input live updates
-        // Corrected the ID array here: used 'bgPulseEffect' instead of 'bgPulse'
         ['bgPulseEffect','spectrumType','particleType'].forEach(id => {
             const el = document.getElementById(id);
             if(el) {
@@ -1398,37 +1371,25 @@
              });
         });
 
-        // Text Position Presets
         elements.posPresets.addEventListener('click', e => {
             if(!e.target.classList.contains('preset-btn')) return;
-            
             document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
-            
             const pos = e.target.dataset.pos;
             const [v, h] = pos.split('-');
-            
-            state.textAlign = h; // left, center, right
+            state.textAlign = h; 
             state.textBaseline = v === 'middle' ? 'middle' : (v === 'top' ? 'top' : 'bottom');
-
-            const map = {
-                'left': 5, 'center': 50, 'right': 95,
-                'top': 10, 'middle': 50, 'bottom': 90
-            };
-            
+            const map = { 'left': 5, 'center': 50, 'right': 95, 'top': 10, 'middle': 50, 'bottom': 90 };
             elements.textPosX.value = map[h];
             elements.textPosY.value = map[v];
-            
             if(!state.isPlaying) drawStaticScene();
         });
 
-        // Resize Logic
         window.addEventListener('resize', () => {
             resizeCanvas();
             drawStaticScene();
         });
 
-        // Init
         resizeCanvas();
         loadPresets();
         updateUI();
