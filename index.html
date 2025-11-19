@@ -123,12 +123,13 @@
             </div>
             
             <!-- Hidden Media Elements -->
+            <!-- Removed 'loop' attribute to allow programmatic control -->
             <audio id="audioElement" crossOrigin="anonymous"></audio>
-            <video id="videoElement" crossOrigin="anonymous" loop playsinline muted class="hidden"></video>
+            <video id="videoElement" crossOrigin="anonymous" playsinline muted class="hidden"></video>
             
             <!-- Overlay Status -->
             <div id="overlayStatus" class="absolute top-4 left-4 bg-black/70 backdrop-blur-sm px-4 py-2 rounded-full text-xs font-mono text-indigo-300 hidden border border-indigo-500/30">
-                <span class="loader"></span> Processing (Background Mode Active)...
+                <span class="loader"></span> Recording (Do not close tab)...
             </div>
         </div>
 
@@ -344,7 +345,7 @@
                         <button id="recordBtn" class="w-full bg-rose-600 hover:bg-rose-500 text-white py-2 rounded-md font-bold text-sm shadow-lg shadow-rose-900/20 flex justify-center items-center gap-2">
                             <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div> Start Recording (WebM)
                         </button>
-                        <p class="text-[10px] text-slate-500 text-center mt-2">Recording runs in background mode. Switch tabs without lag.</p>
+                        <p class="text-[10px] text-slate-500 text-center mt-2">Recording runs in background mode. Auto-downloads on finish.</p>
                     </div>
                 </div>
 
@@ -475,6 +476,7 @@
 
         const resizeCanvas = () => {
             // Internal resolution
+            // Set default resolution, will be overridden during recording to ensure performance
             elements.canvas.width = 1920; 
             elements.canvas.height = 1080;
             if(!state.isPlaying) drawStaticScene();
@@ -517,10 +519,6 @@
         const render = (manual = false) => {
             if (!state.isPlaying) return;
             
-            // If not recording (or if manual trigger), request next frame for smooth preview
-            // But if recording, we rely on Worker mostly, but keeping rAF ensures preview stays smooth too
-            // To avoid double rendering, we can just let them coexist or throttle.
-            // Simple logic: Always use rAF for preview. Worker forces extra frames during recording for stream.
             if (!manual) {
                 state.frameId = requestAnimationFrame(() => render(false));
             }
@@ -1176,6 +1174,12 @@
             initAudio();
             state.isPlaying = true;
             
+            // Ensure loop is ON for preview mode
+            if (!state.isRecording) {
+                elements.video.loop = true;
+                elements.audio.loop = true;
+            }
+
             if(state.useVideoAudio) {
                 connectSource(true);
                 elements.video.play();
@@ -1190,42 +1194,53 @@
         const stopPlayback = () => {
             state.isPlaying = false;
             state.isRecording = false;
-            cancelAnimationFrame(state.frameId);
             
-            // Stop the worker timer
+            // Stop Worker
             worker.postMessage({ command: 'stop' });
             
+            cancelAnimationFrame(state.frameId);
             elements.audio.pause();
             elements.video.pause();
             elements.audio.currentTime = 0;
             elements.video.currentTime = 0;
+            
+            // Restore default loop state
+            elements.video.loop = true;
+            elements.audio.loop = true;
+
             drawStaticScene();
         };
         
-        elements.audio.onended = () => {
-            if(state.mediaRecorder && state.mediaRecorder.state === 'recording') {
-                 stopRecording();
-            } else {
-                stopPlayback();
-                elements.previewBtn.click(); 
-            }
-        };
-        
-        // Logic for video (bg) ending
-        elements.video.onended = () => {
+        // Logic for auto-stop recording
+        const handleMediaEnded = () => {
              if(state.mediaRecorder && state.mediaRecorder.state === 'recording') {
                  stopRecording();
+            } else if (state.isPlaying && !state.isRecording) {
+                // If just previewing and loop is disabled for some reason, loop it manually or stop
+                // But we set loop=true for preview, so this event likely won't fire in preview unless loop failed
+                stopPlayback();
+                elements.previewBtn.click();
             }
         };
 
+        elements.audio.onended = handleMediaEnded;
+        elements.video.onended = handleMediaEnded;
+
         // --- Recording Logic ---
         const startRecording = () => {
-            // Stop playback first to reset safely
+            // Stop first to reset
             if (state.isPlaying) stopPlayback(); 
             
-            // Reset time to 0
+            // Force resolution to 720p for smoother background recording performance
+            elements.canvas.width = 1280;
+            elements.canvas.height = 720;
+
             elements.audio.currentTime = 0;
             elements.video.currentTime = 0;
+            
+            // Disable Loop for Recording - Critical for auto-stop
+            elements.video.loop = false;
+            elements.audio.loop = false;
             
             state.isRecording = true;
 
@@ -1239,7 +1254,7 @@
             try {
                 state.mediaRecorder = new MediaRecorder(combined, { 
                     mimeType: 'video/webm; codecs=vp9,opus',
-                    videoBitsPerSecond: 5000000 // 5 Mbps
+                    videoBitsPerSecond: 3000000 // 3 Mbps is sufficient for 720p
                 });
             } catch(e) {
                 showAlert("Browser doesn't support high-quality WebM recording", 'error');
@@ -1257,10 +1272,14 @@
                 a.download = `visualizer-${Date.now()}.webm`;
                 a.click();
                 
-                // Stop worker loop
                 worker.postMessage({ command: 'stop' });
                 state.isRecording = false;
                 elements.overlayStatus.classList.add('hidden');
+                
+                // Reset Resolution
+                elements.canvas.width = 1920;
+                elements.canvas.height = 1080;
+                
                 showAlert("Video Exported Successfully!");
                 stopPlayback();
                 elements.previewBtn.click(); 
@@ -1268,7 +1287,7 @@
             
             state.mediaRecorder.start();
             
-            // Start the background worker timer
+            // Start Worker Timer
             worker.postMessage({ command: 'start', fps: 30 });
 
             elements.overlayStatus.classList.remove('hidden');
@@ -1278,7 +1297,9 @@
         };
         
         const stopRecording = () => {
-             if(state.mediaRecorder) state.mediaRecorder.stop();
+             if(state.mediaRecorder && state.mediaRecorder.state !== 'inactive') {
+                 state.mediaRecorder.stop();
+             }
              elements.recordBtn.innerHTML = `<div class="w-2 h-2 bg-white rounded-full animate-pulse"></div> Start Recording (WebM)`;
         };
 
